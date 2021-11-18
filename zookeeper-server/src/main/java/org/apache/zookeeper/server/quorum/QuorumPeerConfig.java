@@ -760,7 +760,7 @@ public class QuorumPeerConfig {
 
     public int getInitLimit() { return initLimit; }
     public int getSyncLimit() { return syncLimit; }
-    public int getElectionAlg() { return electionAlg; }
+    public int getElectionAlg() { return electionAlg; } // 默认为3
     public int getElectionPort() { return electionPort; }
 
     public int getSnapRetainCount() {
