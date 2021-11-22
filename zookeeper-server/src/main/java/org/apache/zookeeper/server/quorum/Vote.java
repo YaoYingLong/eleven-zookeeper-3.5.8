@@ -23,8 +23,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
 
 public class Vote {
     
-    public Vote(long id,
-                    long zxid) {
+    public Vote(long id, long zxid) {
         this.version = 0x0;
         this.id = id;
         this.zxid = zxid;
@@ -33,9 +32,7 @@ public class Vote {
         this.state = ServerState.LOOKING;
     }
     
-    public Vote(long id,
-                    long zxid,
-                    long peerEpoch) {
+    public Vote(long id, long zxid, long peerEpoch) {
         this.version = 0x0;
         this.id = id;
         this.zxid = zxid;

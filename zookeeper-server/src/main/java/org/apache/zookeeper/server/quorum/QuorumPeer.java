@@ -892,14 +892,13 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             LOG.warn("Problem starting AdminServer", e);
             System.out.println(e);
         }
-        startLeaderElection();  // 初始化几圈选举leader相关对象数据
+        startLeaderElection();  // 初始化集群选举leader相关对象数据
         super.start(); // 执行当前类的run方法，启动集群选举leader线程
     }
 
     private void loadDataBase() {
         try {
             zkDb.loadDataBase();
-
             // load the epochs
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
             long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
@@ -964,7 +963,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 throw new RuntimeException(e);
             }
         }
-        this.electionAlg = createElectionAlgorithm(electionType);
+        this.electionAlg = createElectionAlgorithm(electionType); // 初始化选举数据管理器，启动选举监听，启动快速选举算法相关的线程
     }
 
     /**
@@ -1060,7 +1059,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     @SuppressWarnings("deprecation")
     protected Election createElectionAlgorithm(int electionAlgorithm){
         Election le=null;
-
         //TODO: use a factory rather than a switch
         switch (electionAlgorithm) {
         case 0:
@@ -1072,18 +1070,18 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         case 2:
             le = new AuthFastLeaderElection(this, true);
             break;
-        case 3:
-            QuorumCnxManager qcm = createCnxnManager();
-            QuorumCnxManager oldQcm = qcmRef.getAndSet(qcm);
+        case 3: // electionAlgorithm默认为3
+            QuorumCnxManager qcm = createCnxnManager(); // 初始化选举数据管理器
+            QuorumCnxManager oldQcm = qcmRef.getAndSet(qcm); // 将新建的选举数据管理器设置到qcmRef，并返回旧的
             if (oldQcm != null) {
                 LOG.warn("Clobbering already-set QuorumCnxManager (restarting leader election?)");
-                oldQcm.halt();
+                oldQcm.halt(); // 若旧的选举数据管理器不为null则关闭旧的
             }
             QuorumCnxManager.Listener listener = qcm.listener;
             if(listener != null){
-                listener.start();
+                listener.start(); // 启动选举监听，调用QuorumCnxManager.Listener的run方法
                 FastLeaderElection fle = new FastLeaderElection(this, qcm);
-                fle.start();
+                fle.start(); // 启动快速选举算法相关的线程
                 le = fle;
             } else {
                 LOG.error("Null listener when initializing cnx manager");
