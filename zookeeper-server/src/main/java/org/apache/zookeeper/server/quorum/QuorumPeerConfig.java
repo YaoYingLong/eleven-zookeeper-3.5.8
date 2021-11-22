@@ -143,7 +143,7 @@ public class QuorumPeerConfig {
             Properties cfg = new Properties();
             FileInputStream in = new FileInputStream(configFile);
             try {
-                cfg.load(in);
+                cfg.load(in); // 解析配置文件内容到Properties
                 configFileStr = path;
             } finally {
                 in.close();
@@ -336,34 +336,23 @@ public class QuorumPeerConfig {
         }
 
         if (!quorumEnableSasl && quorumServerRequireSasl) {
-            throw new IllegalArgumentException(
-                    QuorumAuth.QUORUM_SASL_AUTH_ENABLED
-                            + " is disabled, so cannot enable "
-                            + QuorumAuth.QUORUM_SERVER_SASL_AUTH_REQUIRED);
+            throw new IllegalArgumentException(QuorumAuth.QUORUM_SASL_AUTH_ENABLED + " is disabled, so cannot enable " + QuorumAuth.QUORUM_SERVER_SASL_AUTH_REQUIRED);
         }
         if (!quorumEnableSasl && quorumLearnerRequireSasl) {
-            throw new IllegalArgumentException(
-                    QuorumAuth.QUORUM_SASL_AUTH_ENABLED
-                            + " is disabled, so cannot enable "
-                            + QuorumAuth.QUORUM_LEARNER_SASL_AUTH_REQUIRED);
+            throw new IllegalArgumentException(QuorumAuth.QUORUM_SASL_AUTH_ENABLED + " is disabled, so cannot enable " + QuorumAuth.QUORUM_LEARNER_SASL_AUTH_REQUIRED);
         }
         // If quorumpeer learner is not auth enabled then self won't be able to
         // join quorum. So this condition is ensuring that the quorumpeer learner
         // is also auth enabled while enabling quorum server require sasl.
         if (!quorumLearnerRequireSasl && quorumServerRequireSasl) {
-            throw new IllegalArgumentException(
-                    QuorumAuth.QUORUM_LEARNER_SASL_AUTH_REQUIRED
-                            + " is disabled, so cannot enable "
-                            + QuorumAuth.QUORUM_SERVER_SASL_AUTH_REQUIRED);
+            throw new IllegalArgumentException(QuorumAuth.QUORUM_LEARNER_SASL_AUTH_REQUIRED + " is disabled, so cannot enable " + QuorumAuth.QUORUM_SERVER_SASL_AUTH_REQUIRED);
         }
 
         // Reset to MIN_SNAP_RETAIN_COUNT if invalid (less than 3)
         // PurgeTxnLog.purge(File, File, int) will not allow to purge less
         // than 3.
         if (snapRetainCount < MIN_SNAP_RETAIN_COUNT) {
-            LOG.warn("Invalid autopurge.snapRetainCount: " + snapRetainCount
-                    + ". Defaulting to " + MIN_SNAP_RETAIN_COUNT);
-            snapRetainCount = MIN_SNAP_RETAIN_COUNT;
+            LOG.warn("Invalid autopurge.snapRetainCount: " + snapRetainCount + ". Defaulting to " + MIN_SNAP_RETAIN_COUNT);snapRetainCount = MIN_SNAP_RETAIN_COUNT;
         }
 
         if (dataDir == null) {
@@ -379,8 +368,7 @@ public class QuorumPeerConfig {
                 throw new IllegalArgumentException("clientPortAddress is set but clientPort is not set");
             }
         } else if (clientPortAddress != null) {
-            this.clientPortAddress = new InetSocketAddress(
-                    InetAddress.getByName(clientPortAddress), clientPort);
+            this.clientPortAddress = new InetSocketAddress(InetAddress.getByName(clientPortAddress), clientPort);
             LOG.info("clientPortAddress is {}", formatInetAddr(this.clientPortAddress));
         } else {
             this.clientPortAddress = new InetSocketAddress(clientPort);
@@ -393,8 +381,7 @@ public class QuorumPeerConfig {
                 throw new IllegalArgumentException("secureClientPortAddress is set but secureClientPort is not set");
             }
         } else if (secureClientPortAddress != null) {
-            this.secureClientPortAddress = new InetSocketAddress(
-                    InetAddress.getByName(secureClientPortAddress), secureClientPort);
+            this.secureClientPortAddress = new InetSocketAddress(InetAddress.getByName(secureClientPortAddress), secureClientPort);
             LOG.info("secureClientPortAddress is {}", formatInetAddr(this.secureClientPortAddress));
         } else {
             this.secureClientPortAddress = new InetSocketAddress(secureClientPort);
@@ -412,14 +399,13 @@ public class QuorumPeerConfig {
         maxSessionTimeout = maxSessionTimeout == -1 ? tickTime * 20 : maxSessionTimeout;
 
         if (minSessionTimeout > maxSessionTimeout) {
-            throw new IllegalArgumentException(
-                    "minSessionTimeout must not be larger than maxSessionTimeout");
+            throw new IllegalArgumentException("minSessionTimeout must not be larger than maxSessionTimeout");
         }          
 
         // backward compatibility - dynamic configuration in the same file as
         // static configuration params see writeDynamicConfig()
         if (dynamicConfigFileStr == null) {
-            setupQuorumPeerConfig(zkProp, true);
+            setupQuorumPeerConfig(zkProp, true); // 读取myid文件内容，校验initLimit、syncLimit、serverId
             if (isDistributed() && isReconfigEnabled()) {
                 // we don't backup static config for standalone mode.
                 // we also don't backup if reconfig feature is disabled.
@@ -440,11 +426,9 @@ public class QuorumPeerConfig {
             String sslAuthProp = "zookeeper.authProvider." + System.getProperty(clientX509Util.getSslAuthProviderProperty(), "x509");
             if (System.getProperty(sslAuthProp) == null) {
                 if ("zookeeper.authProvider.x509".equals(sslAuthProp)) {
-                    System.setProperty("zookeeper.authProvider.x509",
-                            "org.apache.zookeeper.server.auth.X509AuthenticationProvider");
+                    System.setProperty("zookeeper.authProvider.x509", "org.apache.zookeeper.server.auth.X509AuthenticationProvider");
                 } else {
-                    throw new ConfigException("No auth provider configured for the SSL authentication scheme '"
-                            + System.getProperty(clientX509Util.getSslAuthProviderProperty()) + "'.");
+                    throw new ConfigException("No auth provider configured for the SSL authentication scheme '" + System.getProperty(clientX509Util.getSslAuthProviderProperty()) + "'.");
                 }
             }
         }

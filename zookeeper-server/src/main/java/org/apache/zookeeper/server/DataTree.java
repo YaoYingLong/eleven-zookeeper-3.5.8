@@ -255,8 +255,7 @@ public class DataTree {
             // Reconfig node is access controlled by default (ZOOKEEPER-2014).
             setACL(configZookeeper, ZooDefs.Ids.READ_ACL_UNSAFE, -1);
         } catch (KeeperException.NoNodeException e) {
-            assert false : "There's no " + configZookeeper +
-                    " znode - this should never happen.";
+            assert false : "There's no " + configZookeeper + " znode - this should never happen.";
         }
     }
 

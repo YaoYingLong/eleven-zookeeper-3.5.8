@@ -97,8 +97,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
 
     private final ServerBootstrap bootstrap;
     private Channel parentChannel;
-    private final ChannelGroup allChannels =
-            new DefaultChannelGroup("zkServerCnxns", new DefaultEventExecutor());
+    private final ChannelGroup allChannels = new DefaultChannelGroup("zkServerCnxns", new DefaultEventExecutor());
     // Access to ipMap or to any Set contained in the map needs to be
     // protected with synchronized (ipMap) { ... }
     private final Map<InetAddress, Set<NettyServerCnxn>> ipMap = new HashMap<>();
@@ -106,11 +105,9 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
     private int maxClientCnxns = 60;
     private final ClientX509Util x509Util;
 
-    private static final AttributeKey<NettyServerCnxn> CONNECTION_ATTRIBUTE =
-            AttributeKey.valueOf("NettyServerCnxn");
+    private static final AttributeKey<NettyServerCnxn> CONNECTION_ATTRIBUTE = AttributeKey.valueOf("NettyServerCnxn");
 
-    private static final AtomicReference<ByteBufAllocator> TEST_ALLOCATOR =
-            new AtomicReference<>(null);
+    private static final AtomicReference<ByteBufAllocator> TEST_ALLOCATOR = new AtomicReference<>(null);
 
     /**
      * A handler that detects whether the client would like to use
@@ -251,7 +248,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            try {
+            try { // 客户端执行命令最终调用该方法
                 if (LOG.isTraceEnabled()) {
                     LOG.trace("message received called {}", msg);
                 }
@@ -382,7 +379,6 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
 
     NettyServerCnxnFactory() {
         x509Util = new ClientX509Util();
-
         boolean usePortUnification = Boolean.getBoolean(PORT_UNIFICATION_KEY);
         LOG.info("{}={}", PORT_UNIFICATION_KEY, usePortUnification);
         if (usePortUnification) {
@@ -395,8 +391,8 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
         }
         this.shouldUsePortUnification = usePortUnification;
 
-        EventLoopGroup bossGroup = NettyUtils.newNioOrEpollEventLoopGroup(
-                NettyUtils.getClientReachableLocalInetAddressCount());
+        // 初始化Netty线程组
+        EventLoopGroup bossGroup = NettyUtils.newNioOrEpollEventLoopGroup(NettyUtils.getClientReachableLocalInetAddressCount());
         EventLoopGroup workerGroup = NettyUtils.newNioOrEpollEventLoopGroup();
         ServerBootstrap bootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
@@ -415,41 +411,29 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                         } else if (shouldUsePortUnification) {
                             initSSL(pipeline, true);
                         }
-                        pipeline.addLast("servercnxnfactory", channelHandler);
+                        pipeline.addLast("servercnxnfactory", channelHandler); // 绑定业务处理CnxnChannelHandler
                     }
                 });
         this.bootstrap = configureBootstrapAllocator(bootstrap);
         this.bootstrap.validate();
     }
 
-    private synchronized void initSSL(ChannelPipeline p, boolean supportPlaintext)
-            throws X509Exception, KeyManagementException, NoSuchAlgorithmException {
+    private synchronized void initSSL(ChannelPipeline p, boolean supportPlaintext) throws X509Exception, KeyManagementException, NoSuchAlgorithmException {
         String authProviderProp = System.getProperty(x509Util.getSslAuthProviderProperty());
         SslContext nettySslContext;
         if (authProviderProp == null) {
             SSLContextAndOptions sslContextAndOptions = x509Util.getDefaultSSLContextAndOptions();
-            nettySslContext = sslContextAndOptions.createNettyJdkSslContext(
-                        sslContextAndOptions.getSSLContext(), false);
+            nettySslContext = sslContextAndOptions.createNettyJdkSslContext(sslContextAndOptions.getSSLContext(), false);
         } else {
             SSLContext sslContext = SSLContext.getInstance(ClientX509Util.DEFAULT_PROTOCOL);
-            X509AuthenticationProvider authProvider =
-                    (X509AuthenticationProvider) ProviderRegistry.getProvider(
-                            System.getProperty(x509Util.getSslAuthProviderProperty(), "x509"));
+            X509AuthenticationProvider authProvider = (X509AuthenticationProvider) ProviderRegistry.getProvider(System.getProperty(x509Util.getSslAuthProviderProperty(), "x509"));
 
             if (authProvider == null) {
                 LOG.error("Auth provider not found: {}", authProviderProp);
-                throw new SSLContextException(
-                        "Could not create SSLContext with specified auth provider: " +
-                                authProviderProp);
+                throw new SSLContextException("Could not create SSLContext with specified auth provider: " + authProviderProp);
             }
-
-            sslContext.init(new X509KeyManager[]{authProvider.getKeyManager()},
-                    new X509TrustManager[]{authProvider.getTrustManager()},
-                    null);
-            nettySslContext = x509Util.getDefaultSSLContextAndOptions()
-                    .createNettyJdkSslContext(sslContext,false);
-        }
-
+            sslContext.init(new X509KeyManager[]{authProvider.getKeyManager()}, new X509TrustManager[]{authProvider.getTrustManager()}, null);
+            nettySslContext = x509Util.getDefaultSSLContextAndOptions().createNettyJdkSslContext(sslContext,false); }
         if (supportPlaintext) {
             p.addLast("ssl", new DualModeSslHandler(nettySslContext));
             LOG.debug("dual mode SSL handler added for channel: {}", p.channel());
@@ -588,7 +572,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
     @Override
     public void start() {
         LOG.info("binding to port {}", localAddress);
-        parentChannel = bootstrap.bind(localAddress).syncUninterruptibly().channel();
+        parentChannel = bootstrap.bind(localAddress).syncUninterruptibly().channel(); // 绑定端口启动
         // Port changes after bind() if the original port was 0, update
         // localAddress to get the real port.
         localAddress = (InetSocketAddress) parentChannel.localAddress();

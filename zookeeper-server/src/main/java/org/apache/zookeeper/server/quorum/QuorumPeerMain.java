@@ -108,17 +108,13 @@ public class QuorumPeerMain {
     protected void initializeAndRun(String[] args) throws ConfigException, IOException, AdminServerException {
         QuorumPeerConfig config = new QuorumPeerConfig();
         if (args.length == 1) {
-            config.parse(args[0]); // 解析配置文件加载到内存
+            config.parse(args[0]); // 解析配置文件加载到内存，包括myid文件内容校验
         }
-
         // Start and schedule the the purge task 清理快照文件任务
-        DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config
-                .getDataDir(), config.getDataLogDir(), config
-                .getSnapRetainCount(), config.getPurgeInterval());
+        DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config.getDataDir(), config.getDataLogDir(), config.getSnapRetainCount(), config.getPurgeInterval());
         purgeMgr.start();
-
         if (args.length == 1 && config.isDistributed()) {
-            runFromConfig(config);  // 启动核心流程
+            runFromConfig(config);  // 集群启动核心流程
         } else {
             LOG.warn("Either no config or no quorum defined in config, running  in standalone mode");
             // there is only server in the quorum -- run as standalone
@@ -128,7 +124,7 @@ public class QuorumPeerMain {
 
     public void runFromConfig(QuorumPeerConfig config) throws IOException, AdminServerException {
       try {
-          ManagedUtil.registerLog4jMBeans();
+          ManagedUtil.registerLog4jMBeans(); // 注册JMX
       } catch (JMException e) {
           LOG.warn("Unable to register log4j JMX control", e);
       }
@@ -137,23 +133,20 @@ public class QuorumPeerMain {
       try {
           ServerCnxnFactory cnxnFactory = null;
           ServerCnxnFactory secureCnxnFactory = null;
-
           if (config.getClientPortAddress() != null) {
-              cnxnFactory = ServerCnxnFactory.createFactory();
+              cnxnFactory = ServerCnxnFactory.createFactory(); // 初始化服务端链接对象zk默认用NIO，官方推荐Netty
               cnxnFactory.configure(config.getClientPortAddress(), config.getMaxClientCnxns(), false);
           }
-
           if (config.getSecureClientPortAddress() != null) {
               secureCnxnFactory = ServerCnxnFactory.createFactory();
               secureCnxnFactory.configure(config.getSecureClientPortAddress(), config.getMaxClientCnxns(), true);
           }
-
-          quorumPeer = getQuorumPeer();
+          quorumPeer = getQuorumPeer(); // 获取本节点对象
           quorumPeer.setTxnFactory(new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir()));
           quorumPeer.enableLocalSessions(config.areLocalSessionsEnabled());
           quorumPeer.enableLocalSessionsUpgrading(config.isLocalSessionsUpgradingEnabled());
           //quorumPeer.setQuorumPeers(config.getAllMembers());
-          quorumPeer.setElectionType(config.getElectionAlg());
+          quorumPeer.setElectionType(config.getElectionAlg()); // 设置选举类型，默认为3
           quorumPeer.setMyid(config.getServerId());
           quorumPeer.setTickTime(config.getTickTime());
           quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
@@ -161,13 +154,13 @@ public class QuorumPeerMain {
           quorumPeer.setInitLimit(config.getInitLimit());
           quorumPeer.setSyncLimit(config.getSyncLimit());
           quorumPeer.setConfigFileName(config.getConfigFilename());
-          quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
+          quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory())); // 初始化内存数据库对象
           quorumPeer.setQuorumVerifier(config.getQuorumVerifier(), false);
           if (config.getLastSeenQuorumVerifier()!=null) {
               quorumPeer.setLastSeenQuorumVerifier(config.getLastSeenQuorumVerifier(), false);
           }
           quorumPeer.initConfigInZKDatabase();
-          quorumPeer.setCnxnFactory(cnxnFactory);
+          quorumPeer.setCnxnFactory(cnxnFactory); // 将上面创建的初始服务连接对象放入本服务节点对象
           quorumPeer.setSecureCnxnFactory(secureCnxnFactory);
           quorumPeer.setSslQuorum(config.isSslQuorum());
           quorumPeer.setUsePortUnification(config.shouldUsePortUnification());
@@ -190,7 +183,7 @@ public class QuorumPeerMain {
           quorumPeer.setQuorumCnxnThreadsSize(config.quorumCnxnThreadsSize);
           quorumPeer.initialize();
           
-          quorumPeer.start();
+          quorumPeer.start(); // 启动服务节点
           quorumPeer.join();
       } catch (InterruptedException e) {
           // warn, but generally this is ok

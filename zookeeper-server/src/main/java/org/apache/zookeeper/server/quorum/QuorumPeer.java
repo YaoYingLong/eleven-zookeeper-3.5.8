@@ -884,16 +884,16 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         if (!getView().containsKey(myid)) {
             throw new RuntimeException("My id " + myid + " not in the peer list");
          }
-        loadDataBase();
-        startServerCnxnFactory();
+        loadDataBase(); // 加载文件数据到内存
+        startServerCnxnFactory(); // 启动Netty服务
         try {
-            adminServer.start();
+            adminServer.start(); // 启动内嵌jetty服务，默认8080端口，用来查看服务端状态信息
         } catch (AdminServerException e) {
             LOG.warn("Problem starting AdminServer", e);
             System.out.println(e);
         }
-        startLeaderElection();
-        super.start(); // 执行当前类的run方法
+        startLeaderElection();  // 初始化几圈选举leader相关对象数据
+        super.start(); // 执行当前类的run方法，启动集群选举leader线程
     }
 
     private void loadDataBase() {
@@ -910,9 +910,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             	// this should only happen once when moving to a
             	// new code version
             	currentEpoch = epochOfZxid;
-            	LOG.info(CURRENT_EPOCH_FILENAME
-            	        + " not found! Creating with a reasonable default of {}. This should only happen when you are upgrading your installation",
-            	        currentEpoch);
+            	LOG.info(CURRENT_EPOCH_FILENAME + " not found! Creating with a reasonable default of {}. This should only happen when you are upgrading your installation", currentEpoch);
             	writeLongToFile(CURRENT_EPOCH_FILENAME, currentEpoch);
             }
             if (epochOfZxid > currentEpoch) {
@@ -925,9 +923,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             	// this should only happen once when moving to a
             	// new code version
             	acceptedEpoch = epochOfZxid;
-            	LOG.info(ACCEPTED_EPOCH_FILENAME
-            	        + " not found! Creating with a reasonable default of {}. This should only happen when you are upgrading your installation",
-            	        acceptedEpoch);
+            	LOG.info(ACCEPTED_EPOCH_FILENAME + " not found! Creating with a reasonable default of {}. This should only happen when you are upgrading your installation", acceptedEpoch);
             	writeLongToFile(ACCEPTED_EPOCH_FILENAME, acceptedEpoch);
             }
             if (acceptedEpoch < currentEpoch) {
@@ -1772,7 +1768,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     private void startServerCnxnFactory() {
         if (cnxnFactory != null) {
-            cnxnFactory.start();
+            cnxnFactory.start(); // 调用NettyServerCnxnFactory的start方法
         }
         if (secureCnxnFactory != null) {
             secureCnxnFactory.start();
