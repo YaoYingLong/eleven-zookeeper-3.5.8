@@ -66,30 +66,28 @@ public class Follower extends Learner{
         self.end_fle = Time.currentElapsedTime();
         long electionTimeTaken = self.end_fle - self.start_fle;
         self.setElectionTimeTaken(electionTimeTaken);
-        LOG.info("FOLLOWING - LEADER ELECTION TOOK - {} {}", electionTimeTaken,
-                QuorumPeer.FLE_TIME_UNIT);
+        LOG.info("FOLLOWING - LEADER ELECTION TOOK - {} {}", electionTimeTaken, QuorumPeer.FLE_TIME_UNIT);
         self.start_fle = 0;
         self.end_fle = 0;
         fzk.registerJMX(new FollowerBean(this, zk), self.jmxLocalPeerBean);
         try {
-            QuorumServer leaderServer = findLeader();            
+            QuorumServer leaderServer = findLeader();  // 获取leader server
             try {
-                connectToLeader(leaderServer.addr, leaderServer.hostname);
-                long newEpochZxid = registerWithLeader(Leader.FOLLOWERINFO);
+                connectToLeader(leaderServer.addr, leaderServer.hostname); // 主动向leader发起socket连接
+                long newEpochZxid = registerWithLeader(Leader.FOLLOWERINFO); // 注册自己到Leader
                 if (self.isReconfigStateChange())
                    throw new Exception("learned about role change");
                 //check to see if the leader zxid is lower than ours
                 //this should never happen but is just a safety check
                 long newEpoch = ZxidUtils.getEpochFromZxid(newEpochZxid);
                 if (newEpoch < self.getAcceptedEpoch()) {
-                    LOG.error("Proposed leader epoch " + ZxidUtils.zxidToString(newEpochZxid)
-                            + " is less than our accepted epoch " + ZxidUtils.zxidToString(self.getAcceptedEpoch()));
+                    LOG.error("Proposed leader epoch " + ZxidUtils.zxidToString(newEpochZxid) + " is less than our accepted epoch " + ZxidUtils.zxidToString(self.getAcceptedEpoch()));
                     throw new IOException("Error: Epoch of leader is lower");
                 }
-                syncWithLeader(newEpochZxid);                
+                syncWithLeader(newEpochZxid); // 同步leader数据
                 QuorumPacket qp = new QuorumPacket();
-                while (this.isRunning()) {
-                    readPacket(qp);
+                while (this.isRunning()) { // while死循环接收leader同步的数据
+                    readPacket(qp); // 若leader挂了，这里从leader取数据时会抛出异常退出循环
                     processPacket(qp);
                 }
             } catch (Exception e) {
@@ -122,36 +120,28 @@ public class Follower extends Learner{
             TxnHeader hdr = new TxnHeader();
             Record txn = SerializeUtils.deserializeTxn(qp.getData(), hdr);
             if (hdr.getZxid() != lastQueued + 1) {
-                LOG.warn("Got zxid 0x"
-                        + Long.toHexString(hdr.getZxid())
-                        + " expected 0x"
-                        + Long.toHexString(lastQueued + 1));
+                LOG.warn("Got zxid 0x" + Long.toHexString(hdr.getZxid()) + " expected 0x" + Long.toHexString(lastQueued + 1));
             }
             lastQueued = hdr.getZxid();
-            
             if (hdr.getType() == OpCode.reconfig){
                SetDataTxn setDataTxn = (SetDataTxn) txn;       
                QuorumVerifier qv = self.configFromString(new String(setDataTxn.getData()));
                self.setLastSeenQuorumVerifier(qv, true);                               
             }
-            
             fzk.logRequest(hdr, txn);
             break;
         case Leader.COMMIT:
             fzk.commit(qp.getZxid());
             break;
-            
         case Leader.COMMITANDACTIVATE:
            // get the new configuration from the request
            Request request = fzk.pendingTxns.element();
            SetDataTxn setDataTxn = (SetDataTxn) request.getTxn();                                                                                                      
-           QuorumVerifier qv = self.configFromString(new String(setDataTxn.getData()));                                
- 
+           QuorumVerifier qv = self.configFromString(new String(setDataTxn.getData()));
            // get new designated leader from (current) leader's message
            ByteBuffer buffer = ByteBuffer.wrap(qp.getData());    
            long suggestedLeaderId = buffer.getLong();
-            boolean majorChange = 
-                   self.processReconfig(qv, suggestedLeaderId, qp.getZxid(), true);
+            boolean majorChange = self.processReconfig(qv, suggestedLeaderId, qp.getZxid(), true);
            // commit (writes the new config to ZK tree (/zookeeper/config)                     
            fzk.commit(qp.getZxid());
             if (majorChange) {

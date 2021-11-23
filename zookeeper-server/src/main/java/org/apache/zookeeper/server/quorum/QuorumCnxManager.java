@@ -642,7 +642,6 @@ public class QuorumCnxManager {
             LOG.debug("There is a connection already for server " + sid);
             return true;
         }
-
         // we are doing connection initiation always asynchronously, since it is possible that
         // the socket connection timeouts or the SSL handshake takes too long and don't want
         // to keep the rest of the connections to wait
@@ -697,10 +696,9 @@ public class QuorumCnxManager {
 
     public void connectAll() {
         long sid;
-        for (Enumeration<Long> en = queueSendMap.keys();
-             en.hasMoreElements(); ) {
+        for (Enumeration<Long> en = queueSendMap.keys(); en.hasMoreElements(); ) {
             sid = en.nextElement();
-            connectOne(sid);
+            connectOne(sid); // 启动QuorumConnectionReqThread线程建立socket连接
         }
     }
 
@@ -715,7 +713,6 @@ public class QuorumCnxManager {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -888,9 +885,7 @@ public class QuorumCnxManager {
                             }
                             numRetries = 0;
                         } catch (SocketTimeoutException e) {
-                            LOG.warn("The socket is listening for the election accepted "
-                                    + "and it timed out unexpectedly, but will retry."
-                                    + "see ZOOKEEPER-2836");
+                            LOG.warn("The socket is listening for the election accepted and it timed out unexpectedly, but will retry.see ZOOKEEPER-2836");
                         }
                     }
                 } catch (IOException e) {
@@ -906,21 +901,14 @@ public class QuorumCnxManager {
                     } catch (IOException ie) {
                         LOG.error("Error closing server socket", ie);
                     } catch (InterruptedException ie) {
-                        LOG.error("Interrupted while sleeping. " +
-                                "Ignoring exception", ie);
+                        LOG.error("Interrupted while sleeping. Ignoring exception", ie);
                     }
                     closeSocket(client);
                 }
             }
             LOG.info("Leaving listener");
             if (!shutdown) {
-                LOG.error("As I'm leaving the listener thread after "
-                        + numRetries + " errors. "
-                        + "I won't be able to participate in leader "
-                        + "election any longer: "
-                        + formatInetAddr(self.getElectionAddress())
-                        + ". Use " + ELECTION_PORT_BIND_RETRY + " property to "
-                        + "increase retry count.");
+                LOG.error("As I'm leaving the listener thread after " + numRetries + " errors. I won't be able to participate in leader election any longer: " + formatInetAddr(self.getElectionAddress()) + ". Use " + ELECTION_PORT_BIND_RETRY + " property to increase retry count.");
                 if (exitException instanceof SocketException) {
                     // After leaving listener thread, the host cannot join the
                     // quorum anymore, this is a severe error that we cannot

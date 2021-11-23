@@ -635,8 +635,7 @@ public class QuorumPeerConfig {
         } else {
             if (warnings) {
                 if (numParticipators <= 2) {
-                    LOG.warn("No server failure will be tolerated. " +
-                        "You need at least 3 servers.");
+                    LOG.warn("No server failure will be tolerated. You need at least 3 servers.");
                 } else if (numParticipators % 2 == 0) {
                     LOG.warn("Non-optimial configuration, consider an odd number of servers.");
                 }
@@ -648,8 +647,7 @@ public class QuorumPeerConfig {
            if (eAlg != 0) {
                for (QuorumServer s : qv.getVotingMembers().values()) {
                    if (s.electionAddr == null)
-                       throw new IllegalArgumentException(
-                               "Missing election port for server: " + s.id);
+                       throw new IllegalArgumentException("Missing election port for server: " + s.id);
                }
            }   
         }

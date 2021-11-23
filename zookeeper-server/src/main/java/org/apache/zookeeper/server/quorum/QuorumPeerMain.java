@@ -170,7 +170,6 @@ public class QuorumPeerMain {
           if (config.sslQuorumReloadCertFiles) {
               quorumPeer.getX509Util().enableCertFileReloading();
           }
-
           // sets quorum sasl authentication configurations
           quorumPeer.setQuorumSaslEnabled(config.quorumEnableSasl);
           if(quorumPeer.isQuorumSaslAuthEnabled()){
