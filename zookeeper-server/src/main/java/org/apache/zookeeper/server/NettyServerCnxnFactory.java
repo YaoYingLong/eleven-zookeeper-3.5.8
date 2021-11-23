@@ -484,9 +484,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
     }
 
     @Override
-    public void configure(InetSocketAddress addr, int maxClientCnxns, boolean secure)
-            throws IOException
-    {
+    public void configure(InetSocketAddress addr, int maxClientCnxns, boolean secure) throws IOException {
         configureSaslLogin();
         localAddress = addr;
         this.maxClientCnxns = maxClientCnxns;

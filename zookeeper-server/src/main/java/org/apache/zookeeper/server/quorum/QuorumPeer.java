@@ -881,10 +881,10 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     @Override
     public synchronized void start() {
-        if (!getView().containsKey(myid)) {
+        if (!getView().containsKey(myid)) { // 判断当前myid是否在配置文件中配置的集群列表中
             throw new RuntimeException("My id " + myid + " not in the peer list");
          }
-        loadDataBase(); // 加载文件数据到内存
+        loadDataBase(); // 加载文件数据到内存，读取快照和事务日志后恢复服务器数据库
         startServerCnxnFactory(); // 启动Netty服务
         try {
             adminServer.start(); // 启动内嵌jetty服务，默认8080端口，用来查看服务端状态信息

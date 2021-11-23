@@ -738,8 +738,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
     public void start() {
         stopped = false;
         if (workerPool == null) {
-            workerPool = new WorkerService(
-                "NIOWorker", numWorkerThreads, false);
+            workerPool = new WorkerService("NIOWorker", numWorkerThreads, false);
         }
         for(SelectorThread thread : selectorThreads) {
             if (thread.getState() == Thread.State.NEW) {
