@@ -43,7 +43,6 @@ public class AdminServerFactory {
                 Class<?> jettyAdminServerC = Class.forName("org.apache.zookeeper.server.admin.JettyAdminServer");
                 Object adminServer = jettyAdminServerC.getConstructor().newInstance();
                 return (AdminServer) adminServer;
-
             } catch (ClassNotFoundException e) {
                 LOG.warn("Unable to start JettyAdminServer", e);
             } catch (InstantiationException e) {

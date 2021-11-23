@@ -224,10 +224,10 @@ public class FastLeaderElection implements Election {
                     // Sleeps on receive
                     try {
                         response = manager.pollRecvQueue(3000, TimeUnit.MILLISECONDS); // 从传输层接收队列中取出选票
-                        if (response == null) continue;
+                        if (response == null) continue; // 若未渠道则继续等待下一次获取选票
                         final int capacity = response.buffer.capacity();
                         // The current protocol and two previous generations all send at least 28 bytes
-                        if (capacity < 28) {
+                        if (capacity < 28) { // 当前协议和前两代协议至少发送28bytes
                             LOG.error("Got a short response from server {}: {}", response.sid, capacity);
                             continue;
                         }
@@ -306,14 +306,13 @@ public class FastLeaderElection implements Election {
                         }
 
                         /*
-                         * If it is from a non-voting server (such as an observer or
-                         * a non-voting follower), respond right away.
+                         * If it is from a non-voting server (such as an observer or a non-voting follower), respond right away.
                          */
-                        if (!validVoter(response.sid)) {
+                        if (!validVoter(response.sid)) { // 若来自无投票权的节点则将当前的选票信息返回应用层发送队列中发送给发起方
                             Vote current = self.getCurrentVote();
                             QuorumVerifier qv = self.getQuorumVerifier();
                             ToSend notmsg = new ToSend(ToSend.mType.notification, current.getId(), current.getZxid(), logicalclock.get(), self.getPeerState(), response.sid, current.getPeerEpoch(), qv.toString().getBytes());
-                            sendqueue.offer(notmsg);
+                            sendqueue.offer(notmsg); // 将当前的选票信息放回应用层发送队列中
                         } else {
                             // Receive new message
                             if (LOG.isDebugEnabled()) {
@@ -356,54 +355,37 @@ public class FastLeaderElection implements Election {
                             /*
                              * If this server is looking, then send proposed leader
                              */
-
                             if (self.getPeerState() == QuorumPeer.ServerState.LOOKING) {
-                                recvqueue.offer(n); // 是本机且还处于选举状态，放入应用层接收队列
+                                recvqueue.offer(n); // 是本机且还处于选举状态，放入应用层接收队列，由RecvWorker线程去处理
                                 /*
                                  * Send a notification back if the peer that sent this
                                  * message is also looking and its logical clock is
                                  * lagging behind.
                                  */
-                                // 若发送选票方是选举状态，且发选举周期小于自己，则把自己PK出来的选票回发给发送选票方
+                                // 若发送选票方是选举状态，且发送选票方选举周期小于自己，则把自己PK出来的选票回发给发送选票方
                                 if ((ackstate == QuorumPeer.ServerState.LOOKING) && (n.electionEpoch < logicalclock.get())) {
                                     Vote v = getVote();
                                     QuorumVerifier qv = self.getQuorumVerifier();
                                     ToSend notmsg = new ToSend(ToSend.mType.notification, v.getId(), v.getZxid(), logicalclock.get(), self.getPeerState(), response.sid, v.getPeerEpoch(), qv.toString().getBytes());
-                                    sendqueue.offer(notmsg); // 把自己PK出来的选票回发给发送选票方
+                                    sendqueue.offer(notmsg); // 把自己PK出来的选票回发给发送选票方，其实就是当前节点的投票发送回去
                                 }
-                            } else {
+                            } else { // 若本节点状态不是LOOKING但发送选票的节点状态为LOOKING，则说明Leader已经明确，则只需要将Leader的票据信息返回即可
                                 /*
-                                 * If this server is not looking, but the one that sent the ack
-                                 * is looking, then send back what it believes to be the leader.
+                                 * If this server is not looking, but the one that sent the ack is looking, then send back what it believes to be the leader.
                                  */
-                                Vote current = self.getCurrentVote();
+                                Vote current = self.getCurrentVote(); // 获取本节点当前的投票
                                 if (ackstate == QuorumPeer.ServerState.LOOKING) {
                                     if (LOG.isDebugEnabled()) {
-                                        LOG.debug("Sending new notification. My id ={} recipient={} zxid=0x{} leader={} config version = {}",
-                                                self.getId(),
-                                                response.sid,
-                                                Long.toHexString(current.getZxid()),
-                                                current.getId(),
-                                                Long.toHexString(self.getQuorumVerifier().getVersion()));
+                                        LOG.debug("Sending new notification. My id ={} recipient={} zxid=0x{} leader={} config version = {}", self.getId(), response.sid, Long.toHexString(current.getZxid()), current.getId(), Long.toHexString(self.getQuorumVerifier().getVersion()));
                                     }
-
                                     QuorumVerifier qv = self.getQuorumVerifier();
-                                    ToSend notmsg = new ToSend(
-                                            ToSend.mType.notification,
-                                            current.getId(),
-                                            current.getZxid(),
-                                            current.getElectionEpoch(),
-                                            self.getPeerState(),
-                                            response.sid,
-                                            current.getPeerEpoch(),
-                                            qv.toString().getBytes());
-                                    sendqueue.offer(notmsg);
+                                    ToSend notmsg = new ToSend(ToSend.mType.notification, current.getId(), current.getZxid(), current.getElectionEpoch(), self.getPeerState(), response.sid, current.getPeerEpoch(), qv.toString().getBytes());
+                                    sendqueue.offer(notmsg); // 把本节点的投票回发给发送选票方
                                 }
                             }
                         }
                     } catch (InterruptedException e) {
-                        LOG.warn("Interrupted Exception while waiting for new message" +
-                                e.toString());
+                        LOG.warn("Interrupted Exception while waiting for new message" + e.toString());
                     }
                 }
                 LOG.info("WorkerReceiver is down");
@@ -428,7 +410,7 @@ public class FastLeaderElection implements Election {
             public void run() {
                 while (!stop) {
                     try {
-                        ToSend m = sendqueue.poll(3000, TimeUnit.MILLISECONDS);  // 从应用层发送队列里去选票
+                        ToSend m = sendqueue.poll(3000, TimeUnit.MILLISECONDS);  // 从应用层发送阻塞队列里获取选票
                         if (m == null) continue;
                         process(m); // 处理取出的选票
                     } catch (InterruptedException e) {

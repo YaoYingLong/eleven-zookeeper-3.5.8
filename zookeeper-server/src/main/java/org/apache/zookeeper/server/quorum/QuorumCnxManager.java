@@ -527,7 +527,7 @@ public class QuorumCnxManager {
         Long sid = null, protocolVersion = null;
         InetSocketAddress electionAddr = null;
         try {
-            protocolVersion = din.readLong(); // 读取发送选票的机器id，即myid文件中配置的值
+            protocolVersion = din.readLong(); // 读取发送选票的机器sid，即myid文件中配置的值
             if (protocolVersion >= 0) { // this is a server id and not a protocol version
                 sid = protocolVersion;
             } else {
@@ -1057,9 +1057,9 @@ public class QuorumCnxManager {
                 while (running && !shutdown && sock != null) {
                     ByteBuffer b = null;
                     try {
-                        ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid); // 取出发送选票队列
+                        ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid); // 取出发送选票的阻塞队列
                         if (bq != null) {
-                            b = pollSendQueue(bq, 1000, TimeUnit.MILLISECONDS); // 从队列中取出选票
+                            b = pollSendQueue(bq, 1000, TimeUnit.MILLISECONDS); // 从阻塞队列中取出选票
                         } else {
                             LOG.error("No queue of incoming messages for server " + sid);
                             break;
@@ -1147,7 +1147,7 @@ public class QuorumCnxManager {
                     byte[] msgArray = new byte[length];
                     din.readFully(msgArray, 0, length);
                     ByteBuffer message = ByteBuffer.wrap(msgArray);
-                    addToRecvQueue(new Message(message.duplicate(), sid)); // 将接收到的选票丢入recvQueue中异步处理
+                    addToRecvQueue(new Message(message.duplicate(), sid)); // 将接收到的选票丢入recvQueue中由应用层WorkerReceiver线程异步处理
                 }
             } catch (Exception e) {
                 LOG.warn("Connection broken for id " + sid + ", my id = " + QuorumCnxManager.this.mySid + ", error = ", e);
@@ -1243,7 +1243,7 @@ public class QuorumCnxManager {
                 }
             }
             try {
-                recvQueue.add(msg); // 将接收到的选票丢入recvQueue中异步处理
+                recvQueue.add(msg); // 将接收到的选票丢入传输层接收选票队列recvQueue中由应用层WorkerReceiver线程异步处理
             } catch (IllegalStateException ie) {
                 // This should never happen
                 LOG.error("Unable to insert element in the recvQueue " + ie);

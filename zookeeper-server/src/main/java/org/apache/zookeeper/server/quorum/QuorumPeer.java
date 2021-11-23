@@ -1172,7 +1172,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                                     shuttingDownLE = false;
                                     startLeaderElection();
                                 }
-                                setCurrentVote(makeLEStrategy().lookForLeader());
+                                setCurrentVote(makeLEStrategy().lookForLeader()); // 调用FastLeaderElection的lookForLeader方法
                             } catch (Exception e) {
                                 LOG.warn("Unexpected exception", e);
                                 setPeerState(ServerState.LOOKING);
@@ -2052,9 +2052,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     private void updateThreadName() {
-        String plain = cnxnFactory != null ?
-                cnxnFactory.getLocalAddress() != null ?
-                        formatInetAddr(cnxnFactory.getLocalAddress()) : "disabled" : "disabled";
+        String plain = cnxnFactory != null ? cnxnFactory.getLocalAddress() != null ? formatInetAddr(cnxnFactory.getLocalAddress()) : "disabled" : "disabled";
         String secure = secureCnxnFactory != null ? formatInetAddr(secureCnxnFactory.getLocalAddress()) : "disabled";
         setName(String.format("QuorumPeer[myid=%d](plain=%s)(secure=%s)", getId(), plain, secure));
     }
