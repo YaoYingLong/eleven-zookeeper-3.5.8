@@ -195,12 +195,10 @@ public class LearnerHandler extends ZooKeeperThread {
 
         try {
             if (leader.self != null) {
-                leader.self.authServer.authenticate(sock,
-                        new DataInputStream(bufferedInput));
+                leader.self.authServer.authenticate(sock, new DataInputStream(bufferedInput));
             }
         } catch (IOException e) {
-            LOG.error("Server failed to authenticate quorum learner, addr: {}, closing connection",
-                    sock.getRemoteSocketAddress(), e);
+            LOG.error("Server failed to authenticate quorum learner, addr: {}, closing connection", sock.getRemoteSocketAddress(), e);
             try {
                 sock.close();
             } catch (IOException ie) {
@@ -368,8 +366,7 @@ public class LearnerHandler extends ZooKeeperThread {
     public void run() {
         try {
             leader.addLearnerHandler(this);
-            tickOfNextAckDeadline = leader.self.tick.get()
-                    + leader.self.initLimit + leader.self.syncLimit;
+            tickOfNextAckDeadline = leader.self.tick.get() + leader.self.initLimit + leader.self.syncLimit;
 
             ia = BinaryInputArchive.getArchive(bufferedInput);
             bufferedOutput = new BufferedOutputStream(sock.getOutputStream());
@@ -378,8 +375,7 @@ public class LearnerHandler extends ZooKeeperThread {
             QuorumPacket qp = new QuorumPacket();
             ia.readRecord(qp, "packet");
             if(qp.getType() != Leader.FOLLOWERINFO && qp.getType() != Leader.OBSERVERINFO){
-                LOG.error("First packet " + qp.toString()
-                        + " is not FOLLOWERINFO or OBSERVERINFO!");
+                LOG.error("First packet " + qp.toString() + " is not FOLLOWERINFO or OBSERVERINFO!");
                 return;
             }
 
@@ -403,8 +399,7 @@ public class LearnerHandler extends ZooKeeperThread {
             }
 
             if (leader.self.getView().containsKey(this.sid)) {
-                LOG.info("Follower sid: " + this.sid + " : info : "
-                        + leader.self.getView().get(this.sid).toString());
+                LOG.info("Follower sid: " + this.sid + " : info : " + leader.self.getView().get(this.sid).toString());
             } else {
                 LOG.info("Follower sid: " + this.sid + " not in the current config " + Long.toHexString(leader.self.getQuorumVerifier().getVersion()));
             }

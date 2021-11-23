@@ -323,13 +323,11 @@ public class QuorumHierarchical implements QuorumVerifier {
      */
     public boolean containsQuorum(Set<Long> set){
         HashMap<Long, Long> expansion = new HashMap<Long, Long>();
-        
         /*
          * Adds up weights per group
          */
         if(set.size() == 0) return false;
         else LOG.debug("Set size: " + set.size());
-        
         for(long sid : set){
             Long gid = serverGroup.get(sid);
             if (gid == null) continue;

@@ -115,7 +115,7 @@ public class BinaryInputArchive implements InputArchive {
     }
     
     public void readRecord(Record r, String tag) throws IOException {
-        r.deserialize(this, tag);
+        r.deserialize(this, tag); // 调用QuorumPacket的deserialize方法，使用jute序列化从输入流中拿数据，jute类似protobuf
     }
     
     public void startRecord(String tag) throws IOException {}
