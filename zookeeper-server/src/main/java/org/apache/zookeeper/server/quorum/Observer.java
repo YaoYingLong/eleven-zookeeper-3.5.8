@@ -61,7 +61,6 @@ public class Observer extends Learner{
      */
     void observeLeader() throws Exception {
         zk.registerJMX(new ObserverBean(this, zk), self.jmxLocalPeerBean);
-
         try {
             QuorumServer leaderServer = findLeader();
             LOG.info("Observing " + leaderServer.addr);
@@ -70,7 +69,6 @@ public class Observer extends Learner{
                 long newLeaderZxid = registerWithLeader(Leader.OBSERVERINFO);
                 if (self.isReconfigStateChange())
                    throw new Exception("learned about role change");
- 
                 syncWithLeader(newLeaderZxid);
                 QuorumPacket qp = new QuorumPacket();
                 while (this.isRunning()) {
@@ -84,7 +82,6 @@ public class Observer extends Learner{
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
-
                 // clear pending revalidations
                 pendingRevalidations.clear();
             }

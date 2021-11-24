@@ -1184,7 +1184,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                             }
                         } else {
                             try { // 这里的Leader选举策略默认是FastLeaderElection
-                                reconfigFlagClear();
+                                reconfigFlagClear(); // 将reconfigFlag置为false，在updateServerState()方法中会用到
                                 if (shuttingDownLE) {
                                     shuttingDownLE = false;
                                     startLeaderElection();
@@ -1200,7 +1200,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         try {
                             LOG.info("OBSERVING");
                             setObserver(makeObserver(logFactory));
-                            observer.observeLeader();
+                            observer.observeLeader(); // 与leader建立连接并接收leader数据同步，且一直保持连接
                         } catch (Exception e) {
                             LOG.warn("Unexpected exception", e);
                         } finally {
@@ -1213,7 +1213,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         try {
                             LOG.info("FOLLOWING");
                             setFollower(makeFollower(logFactory));
-                            follower.followLeader(); // 与leader建立连接并接收leader数据同步
+                            follower.followLeader(); // 与leader建立连接并接收leader数据同步，且一直保持连接
                         } catch (Exception e) {
                             LOG.warn("Unexpected exception", e);
                         } finally {
@@ -1226,7 +1226,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         LOG.info("LEADING");
                         try {
                             setLeader(makeLeader(logFactory));
-                            leader.lead();
+                            leader.lead();  // 每隔一段时间给从节点发送ping消息保持长连接
                             setLeader(null);
                         } catch (Exception e) {
                             LOG.warn("Unexpected exception", e);
@@ -1235,7 +1235,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                                 leader.shutdown("Forcing shutdown");
                                 setLeader(null);
                             }
-                            updateServerState();
+                            updateServerState(); // 将自己的状态改为LOOKING，进入下一轮选举
                         }
                         break;
                 }
@@ -1258,7 +1258,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     private synchronized void updateServerState() {
-        if (!reconfigFlag) {
+        if (!reconfigFlag) { // 进行选举流程时会通过reconfigFlagClear()方法先将reconfigFlag置为false
             setPeerState(ServerState.LOOKING);
             LOG.warn("PeerState set to LOOKING");
             return;

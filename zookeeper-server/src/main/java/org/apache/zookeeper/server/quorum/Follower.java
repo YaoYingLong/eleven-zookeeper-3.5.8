@@ -97,7 +97,6 @@ public class Follower extends Learner{
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
-    
                 // clear pending revalidations
                 pendingRevalidations.clear();
             }

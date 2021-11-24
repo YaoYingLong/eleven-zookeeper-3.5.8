@@ -462,14 +462,11 @@ public class Leader {
             self.tick.set(0);
             zk.loadData(); // 初始化LeaderZookeeperServer数据
             leaderStateSummary = new StateSummary(self.getCurrentEpoch(), zk.getLastProcessedZxid());
-
-            // Start thread that waits for connection requests from
-            // new followers.
+            // Start thread that waits for connection requests from new followers.
             cnxAcceptor = new LearnerCnxAcceptor();
             cnxAcceptor.start();  // 同步数据给从节点
 
             long epoch = getEpochToPropose(self.getId(), self.getAcceptedEpoch());
-
             zk.setZxid(ZxidUtils.makeZxid(epoch, 0));
             synchronized(this){
                 lastProposed = zk.getZxid();
@@ -1209,11 +1206,7 @@ public class Leader {
             }
             if (ss.getCurrentEpoch() != -1) {
                 if (ss.isMoreRecentThan(leaderStateSummary)) {
-                    throw new IOException("Follower is ahead of the leader, leader summary: " 
-                                                    + leaderStateSummary.getCurrentEpoch()
-                                                    + " (current epoch), "
-                                                    + leaderStateSummary.getLastZxid()
-                                                    + " (last zxid)");
+                    throw new IOException("Follower is ahead of the leader, leader summary: " + leaderStateSummary.getCurrentEpoch() + " (current epoch), " + leaderStateSummary.getLastZxid() + " (last zxid)");
                 }
                 if (isParticipant(id)) {
                     electingFollowers.add(id);

@@ -390,11 +390,9 @@ public class Learner {
                     System.exit(13);
                 }
                 zk.getZKDatabase().setlastProcessedZxid(qp.getZxid());
-
             } else {
                 LOG.error("Got unexpected packet from leader: {}, exiting ... ", LearnerHandler.packetToString(qp));
                 System.exit(13);
-
             }
             zk.getZKDatabase().initConfigInZKDatabase(self.getQuorumVerifier());
             zk.createSessionTracker();
@@ -418,10 +416,7 @@ public class Learner {
                         pif.hdr = new TxnHeader();
                         pif.rec = SerializeUtils.deserializeTxn(qp.getData(), pif.hdr);
                         if (pif.hdr.getZxid() != lastQueued + 1) {
-                            LOG.warn("Got zxid 0x"
-                                    + Long.toHexString(pif.hdr.getZxid())
-                                    + " expected 0x"
-                                    + Long.toHexString(lastQueued + 1));
+                            LOG.warn("Got zxid 0x" + Long.toHexString(pif.hdr.getZxid()) + " expected 0x" + Long.toHexString(lastQueued + 1));
                         }
                         lastQueued = pif.hdr.getZxid();
 
@@ -459,7 +454,6 @@ public class Learner {
                     case Leader.INFORMANDACTIVATE:
                         PacketInFlight packet = new PacketInFlight();
                         packet.hdr = new TxnHeader();
-
                         if (qp.getType() == Leader.INFORMANDACTIVATE) {
                             ByteBuffer buffer = ByteBuffer.wrap(qp.getData());
                             long suggestedLeaderId = buffer.getLong();
@@ -467,8 +461,7 @@ public class Learner {
                             buffer.get(remainingdata);
                             packet.rec = SerializeUtils.deserializeTxn(remainingdata, packet.hdr);
                             QuorumVerifier qv = self.configFromString(new String(((SetDataTxn) packet.rec).getData()));
-                            boolean majorChange =
-                                    self.processReconfig(qv, suggestedLeaderId, qp.getZxid(), true);
+                            boolean majorChange = self.processReconfig(qv, suggestedLeaderId, qp.getZxid(), true);
                             if (majorChange) {
                                 throw new Exception("changes proposed in reconfig");
                             }
@@ -476,10 +469,7 @@ public class Learner {
                             packet.rec = SerializeUtils.deserializeTxn(qp.getData(), packet.hdr);
                             // Log warning message if txn comes out-of-order
                             if (packet.hdr.getZxid() != lastQueued + 1) {
-                                LOG.warn("Got zxid 0x"
-                                        + Long.toHexString(packet.hdr.getZxid())
-                                        + " expected 0x"
-                                        + Long.toHexString(lastQueued + 1));
+                                LOG.warn("Got zxid 0x" + Long.toHexString(packet.hdr.getZxid()) + " expected 0x" + Long.toHexString(lastQueued + 1));
                             }
                             lastQueued = packet.hdr.getZxid();
                         }
@@ -495,8 +485,7 @@ public class Learner {
                     case Leader.UPTODATE:
                         LOG.info("Learner received UPTODATE message");
                         if (newLeaderQV != null) {
-                            boolean majorChange =
-                                    self.processReconfig(newLeaderQV, null, null, true);
+                            boolean majorChange = self.processReconfig(newLeaderQV, null, null, true);
                             if (majorChange) {
                                 throw new Exception("changes proposed in reconfig");
                             }
@@ -520,11 +509,9 @@ public class Learner {
                                 e.printStackTrace();
                             }
                         }
-
                         if (snapshotNeeded) {
                             zk.takeSnapshot();
                         }
-
                         self.setCurrentEpoch(newEpoch);
                         writeToTxnLog = true; //Anything after this needs to go to the transaction log, not applied directly in memory
                         isPreZAB1_0 = false;
@@ -564,14 +551,11 @@ public class Learner {
                 if (p.hdr.getZxid() != zxid) {
                     // log warning message if there is no matching commit
                     // old leader send outstanding proposal to observer
-                    LOG.warn("Committing " + Long.toHexString(zxid)
-                            + ", but next proposal is "
-                            + Long.toHexString(p.hdr.getZxid()));
+                    LOG.warn("Committing " + Long.toHexString(zxid) + ", but next proposal is " + Long.toHexString(p.hdr.getZxid()));
                     continue;
                 }
                 packetsCommitted.remove();
-                Request request = new Request(null, p.hdr.getClientId(),
-                        p.hdr.getCxid(), p.hdr.getType(), null, null);
+                Request request = new Request(null, p.hdr.getClientId(), p.hdr.getCxid(), p.hdr.getType(), null, null);
                 request.setTxn(p.rec);
                 request.setHdr(p.hdr);
                 ozk.commitRequest(request);

@@ -647,6 +647,7 @@ public class FastLeaderElection implements Election {
          * 3- New epoch is the same as current epoch, new zxid is the same 若选举周期相同，zxid也相同，则比较myid
          *  as current zxid, but server id is higher.
          */
+        // 首先比较收到的选票的选举周期，若收到的选票的选举周期大于当前的则返回true，若选举周期相同，比较zxid，若选举周期相同，zxid也相同，则比较myid
         return ((newEpoch > curEpoch) || ((newEpoch == curEpoch) && ((newZxid > curZxid) || ((newZxid == curZxid) && (newId > curId)))));
     }
 
@@ -807,9 +808,8 @@ public class FastLeaderElection implements Election {
             while ((self.getPeerState() == ServerState.LOOKING) && (!stop)) {
                 /*
                  * Remove next notification from queue, times out after 2 times the termination time
-                 * 从队列中删除下一个通知，在终止时间的 2 倍后超时
                  */
-                Notification n = recvqueue.poll(notTimeout, TimeUnit.MILLISECONDS);
+                Notification n = recvqueue.poll(notTimeout, TimeUnit.MILLISECONDS); // 从应用层接收队列中取出接收到的选票
 
                 /*
                  * Sends more notifications if haven't received enough. Otherwise processes new notification.
@@ -826,7 +826,7 @@ public class FastLeaderElection implements Election {
                     int tmpTimeOut = notTimeout * 2;
                     notTimeout = (tmpTimeOut < maxNotificationInterval ? tmpTimeOut : maxNotificationInterval);
                     LOG.info("Notification time out: " + notTimeout);
-                } else if (validVoter(n.sid) && validVoter(n.leader)) { // 判断发送选票方的选票状态
+                } else if (validVoter(n.sid) && validVoter(n.leader)) { // 判断发送选票方选票是否有效，其实就是判断sid与选票是否在votingMembers中
                     /*
                      * Only proceed if the vote comes from a replica in the current or next voting view for a replica in the current or next voting view.
                      */
