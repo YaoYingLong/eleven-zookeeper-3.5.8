@@ -735,8 +735,7 @@ public class LearnerHandler extends ZooKeeperThread {
 
                     LOG.debug("Queueing committedLog 0x" + Long.toHexString(currentZxid));
                     Iterator<Proposal> committedLogItr = db.getCommittedLog().iterator();
-                    currentZxid = queueCommittedProposals(committedLogItr, currentZxid,
-                                                         null, maxCommittedLog);
+                    currentZxid = queueCommittedProposals(committedLogItr, currentZxid, null, maxCommittedLog);
                     needSnap = false;
                 }
                 // closing the resources
@@ -776,8 +775,7 @@ public class LearnerHandler extends ZooKeeperThread {
      *        on the leader to follow Zab 1.0 protocol.
      * @return last zxid of the queued proposal
      */
-    protected long queueCommittedProposals(Iterator<Proposal> itr,
-            long peerLastZxid, Long maxZxid, Long lastCommittedZxid) {
+    protected long queueCommittedProposals(Iterator<Proposal> itr, long peerLastZxid, Long maxZxid, Long lastCommittedZxid) {
         boolean isPeerNewEpochZxid = (peerLastZxid & 0xffffffffL) == 0;
         long queuedZxid = peerLastZxid;
         // as we look through proposals, this variable keeps track of previous
@@ -785,86 +783,66 @@ public class LearnerHandler extends ZooKeeperThread {
         long prevProposalZxid = -1;
         while (itr.hasNext()) {
             Proposal propose = itr.next();
-
             long packetZxid = propose.packet.getZxid();
             // abort if we hit the limit
             if ((maxZxid != null) && (packetZxid > maxZxid)) {
                 break;
             }
-
             // skip the proposals the peer already has
             if (packetZxid < peerLastZxid) {
                 prevProposalZxid = packetZxid;
                 continue;
             }
-
             // If we are sending the first packet, figure out whether to trunc
             // or diff
             if (needOpPacket) {
-
                 // Send diff when we see the follower's zxid in our history
                 if (packetZxid == peerLastZxid) {
-                    LOG.info("Sending DIFF zxid=0x" +
-                             Long.toHexString(lastCommittedZxid) +
-                             " for peer sid: " + getSid());
+                    LOG.info("Sending DIFF zxid=0x" + Long.toHexString(lastCommittedZxid) + " for peer sid: " + getSid());
                     queueOpPacket(Leader.DIFF, lastCommittedZxid);
                     needOpPacket = false;
                     continue;
                 }
-
                 if (isPeerNewEpochZxid) {
                    // Send diff and fall through if zxid is of a new-epoch
-                   LOG.info("Sending DIFF zxid=0x" +
-                            Long.toHexString(lastCommittedZxid) +
-                            " for peer sid: " + getSid());
+                   LOG.info("Sending DIFF zxid=0x" + Long.toHexString(lastCommittedZxid) + " for peer sid: " + getSid());
                    queueOpPacket(Leader.DIFF, lastCommittedZxid);
                    needOpPacket = false;
                 } else if (packetZxid > peerLastZxid  ) {
                     // Peer have some proposals that the leader hasn't seen yet
                     // it may used to be a leader
-                    if (ZxidUtils.getEpochFromZxid(packetZxid) !=
-                            ZxidUtils.getEpochFromZxid(peerLastZxid)) {
+                    if (ZxidUtils.getEpochFromZxid(packetZxid) != ZxidUtils.getEpochFromZxid(peerLastZxid)) {
                         // We cannot send TRUNC that cross epoch boundary.
                         // The learner will crash if it is asked to do so.
                         // We will send snapshot this those cases.
-                        LOG.warn("Cannot send TRUNC to peer sid: " + getSid() +
-                                 " peer zxid is from different epoch" );
+                        LOG.warn("Cannot send TRUNC to peer sid: " + getSid() + " peer zxid is from different epoch" );
                         return queuedZxid;
                     }
 
-                    LOG.info("Sending TRUNC zxid=0x" +
-                            Long.toHexString(prevProposalZxid) +
-                            " for peer sid: " + getSid());
+                    LOG.info("Sending TRUNC zxid=0x" + Long.toHexString(prevProposalZxid) + " for peer sid: " + getSid());
                     queueOpPacket(Leader.TRUNC, prevProposalZxid);
                     needOpPacket = false;
                 }
             }
-
             if (packetZxid <= queuedZxid) {
                 // We can get here, if we don't have op packet to queue
                 // or there is a duplicate txn in a given iterator
                 continue;
             }
-
             // Since this is already a committed proposal, we need to follow
             // it by a commit packet
             queuePacket(propose.packet);
             queueOpPacket(Leader.COMMIT, packetZxid);
             queuedZxid = packetZxid;
-
         }
-
         if (needOpPacket && isPeerNewEpochZxid) {
             // We will send DIFF for this kind of zxid in any case. This if-block
             // is the catch when our history older than learner and there is
             // no new txn since then. So we need an empty diff
-            LOG.info("Sending DIFF zxid=0x" +
-                     Long.toHexString(lastCommittedZxid) +
-                     " for peer sid: " + getSid());
+            LOG.info("Sending DIFF zxid=0x" + Long.toHexString(lastCommittedZxid) + " for peer sid: " + getSid());
             queueOpPacket(Leader.DIFF, lastCommittedZxid);
             needOpPacket = false;
         }
-
         return queuedZxid;
     }    
     

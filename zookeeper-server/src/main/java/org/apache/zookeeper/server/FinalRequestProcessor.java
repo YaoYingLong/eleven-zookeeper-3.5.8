@@ -108,30 +108,23 @@ public class FinalRequestProcessor implements RequestProcessor {
         }
         ProcessTxnResult rc = null;
         synchronized (zks.outstandingChanges) {
-            // Need to process local session requests
-            rc = zks.processTxn(request);
-
-            // request.hdr is set for write requests, which are the only ones
-            // that add to outstandingChanges.
+            rc = zks.processTxn(request); // 写数据到内存中，这这之后客户端节点才可以操作该数据
+            // request.hdr is set for write requests, which are the only ones that add to outstandingChanges.
             if (request.getHdr() != null) {
                 TxnHeader hdr = request.getHdr();
                 Record txn = request.getTxn();
                 long zxid = hdr.getZxid();
-                while (!zks.outstandingChanges.isEmpty()
-                       && zks.outstandingChanges.peek().zxid <= zxid) {
+                while (!zks.outstandingChanges.isEmpty() && zks.outstandingChanges.peek().zxid <= zxid) {
                     ChangeRecord cr = zks.outstandingChanges.remove();
                     if (cr.zxid < zxid) {
-                        LOG.warn("Zxid outstanding " + cr.zxid
-                                 + " is less than current " + zxid);
+                        LOG.warn("Zxid outstanding " + cr.zxid + " is less than current " + zxid);
                     }
                     if (zks.outstandingChangesForPath.get(cr.path) == cr) {
                         zks.outstandingChangesForPath.remove(cr.path);
                     }
                 }
             }
-
-            // do not add non quorum packets to the queue.
-            if (request.isQuorum()) {
+            if (request.isQuorum()) { // do not add non quorum packets to the queue.
                 zks.getZKDatabase().addCommittedProposal(request);
             }
         }
@@ -145,17 +138,14 @@ public class FinalRequestProcessor implements RequestProcessor {
             // We need to check if we can close the session id.
             // Sometimes the corresponding ServerCnxnFactory could be null because
             // we are just playing diffs from the leader.
-            if (closeSession(zks.serverCnxnFactory, request.sessionId) ||
-                    closeSession(zks.secureServerCnxnFactory, request.sessionId)) {
+            if (closeSession(zks.serverCnxnFactory, request.sessionId) || closeSession(zks.secureServerCnxnFactory, request.sessionId)) {
                 return;
             }
         }
-
         if (request.cnxn == null) {
             return;
         }
         ServerCnxn cnxn = request.cnxn;
-
         String lastOp = "NA";
         zks.decInProcess();
         Code err = Code.OK;
@@ -172,49 +162,36 @@ public class FinalRequestProcessor implements RequestProcessor {
                 if (request.getException() != null) {
                     throw request.getException();
                 } else {
-                    throw KeeperException.create(KeeperException.Code
-                            .get(((ErrorTxn) request.getTxn()).getErr()));
+                    throw KeeperException.create(KeeperException.Code.get(((ErrorTxn) request.getTxn()).getErr()));
                 }
             }
-
             KeeperException ke = request.getException();
             if (ke != null && request.type != OpCode.multi) {
                 throw ke;
             }
-
             if (LOG.isDebugEnabled()) {
                 LOG.debug("{}",request);
             }
             switch (request.type) {
             case OpCode.ping: {
                 zks.serverStats().updateLatency(request.createTime);
-
                 lastOp = "PING";
-                cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp,
-                        request.createTime, Time.currentElapsedTime());
-
-                cnxn.sendResponse(new ReplyHeader(-2,
-                        zks.getZKDatabase().getDataTreeLastProcessedZxid(), 0), null, "response");
+                cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp, request.createTime, Time.currentElapsedTime());
+                cnxn.sendResponse(new ReplyHeader(-2, zks.getZKDatabase().getDataTreeLastProcessedZxid(), 0), null, "response");
                 return;
             }
             case OpCode.createSession: {
                 zks.serverStats().updateLatency(request.createTime);
-
                 lastOp = "SESS";
-                cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp,
-                        request.createTime, Time.currentElapsedTime());
-
+                cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp, request.createTime, Time.currentElapsedTime());
                 zks.finishSessionInit(request.cnxn, true);
                 return;
             }
             case OpCode.multi: {
                 lastOp = "MULT";
                 rsp = new MultiResponse() ;
-
                 for (ProcessTxnResult subTxnResult : rc.multiResult) {
-
                     OpResult subResult ;
-
                     switch (subTxnResult.type) {
                         case OpCode.check:
                             subResult = new CheckResult();
@@ -240,10 +217,8 @@ public class FinalRequestProcessor implements RequestProcessor {
                         default:
                             throw new IOException("Invalid type of op");
                     }
-
                     ((MultiResponse)rsp).add(subResult);
                 }
-
                 break;
             }
             case OpCode.create: {
@@ -313,26 +288,21 @@ public class FinalRequestProcessor implements RequestProcessor {
                 if (path.indexOf('\0') != -1) {
                     throw new KeeperException.BadArgumentsException();
                 }
-                Stat stat = zks.getZKDatabase().statNode(path, existsRequest
-                        .getWatch() ? cnxn : null);
+                Stat stat = zks.getZKDatabase().statNode(path, existsRequest.getWatch() ? cnxn : null);
                 rsp = new ExistsResponse(stat);
                 break;
             }
             case OpCode.getData: {
                 lastOp = "GETD";
                 GetDataRequest getDataRequest = new GetDataRequest();
-                ByteBufferInputStream.byteBuffer2Record(request.request,
-                        getDataRequest);
+                ByteBufferInputStream.byteBuffer2Record(request.request, getDataRequest);
                 DataNode n = zks.getZKDatabase().getNode(getDataRequest.getPath());
                 if (n == null) {
                     throw new KeeperException.NoNodeException();
                 }
-                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n),
-                        ZooDefs.Perms.READ,
-                        request.authInfo);
+                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n), ZooDefs.Perms.READ, request.authInfo);
                 Stat stat = new Stat();
-                byte b[] = zks.getZKDatabase().getData(getDataRequest.getPath(), stat,
-                        getDataRequest.getWatch() ? cnxn : null);
+                byte b[] = zks.getZKDatabase().getData(getDataRequest.getPath(), stat, getDataRequest.getWatch() ? cnxn : null);
                 rsp = new GetDataResponse(b, stat);
                 break;
             }
@@ -343,32 +313,22 @@ public class FinalRequestProcessor implements RequestProcessor {
                 request.request.rewind();
                 ByteBufferInputStream.byteBuffer2Record(request.request, setWatches);
                 long relativeZxid = setWatches.getRelativeZxid();
-                zks.getZKDatabase().setWatches(relativeZxid,
-                        setWatches.getDataWatches(),
-                        setWatches.getExistWatches(),
-                        setWatches.getChildWatches(), cnxn);
+                zks.getZKDatabase().setWatches(relativeZxid, setWatches.getDataWatches(), setWatches.getExistWatches(), setWatches.getChildWatches(), cnxn);
                 break;
             }
             case OpCode.getACL: {
                 lastOp = "GETA";
                 GetACLRequest getACLRequest = new GetACLRequest();
-                ByteBufferInputStream.byteBuffer2Record(request.request,
-                        getACLRequest);
+                ByteBufferInputStream.byteBuffer2Record(request.request, getACLRequest);
                 DataNode n = zks.getZKDatabase().getNode(getACLRequest.getPath());
                 if (n == null) {
                     throw new KeeperException.NoNodeException();
                 }
-                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n),
-                        ZooDefs.Perms.READ | ZooDefs.Perms.ADMIN,
-                        request.authInfo);
-
+                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n), ZooDefs.Perms.READ | ZooDefs.Perms.ADMIN, request.authInfo);
                 Stat stat = new Stat();
-                List<ACL> acl =
-                        zks.getZKDatabase().getACL(getACLRequest.getPath(), stat);
+                List<ACL> acl = zks.getZKDatabase().getACL(getACLRequest.getPath(), stat);
                 try {
-                    PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n),
-                            ZooDefs.Perms.ADMIN,
-                            request.authInfo);
+                    PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n), ZooDefs.Perms.ADMIN, request.authInfo);
                     rsp = new GetACLResponse(acl, stat);
                 } catch (KeeperException.NoAuthException e) {
                     List<ACL> acl1 = new ArrayList<ACL>(acl.size());
@@ -388,51 +348,38 @@ public class FinalRequestProcessor implements RequestProcessor {
             case OpCode.getChildren: {
                 lastOp = "GETC";
                 GetChildrenRequest getChildrenRequest = new GetChildrenRequest();
-                ByteBufferInputStream.byteBuffer2Record(request.request,
-                        getChildrenRequest);
+                ByteBufferInputStream.byteBuffer2Record(request.request, getChildrenRequest);
                 DataNode n = zks.getZKDatabase().getNode(getChildrenRequest.getPath());
                 if (n == null) {
                     throw new KeeperException.NoNodeException();
                 }
-                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n),
-                        ZooDefs.Perms.READ,
-                        request.authInfo);
-                List<String> children = zks.getZKDatabase().getChildren(
-                        getChildrenRequest.getPath(), null, getChildrenRequest
-                                .getWatch() ? cnxn : null);
+                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n), ZooDefs.Perms.READ, request.authInfo);
+                List<String> children = zks.getZKDatabase().getChildren(getChildrenRequest.getPath(), null, getChildrenRequest.getWatch() ? cnxn : null);
                 rsp = new GetChildrenResponse(children);
                 break;
             }
             case OpCode.getChildren2: {
                 lastOp = "GETC";
                 GetChildren2Request getChildren2Request = new GetChildren2Request();
-                ByteBufferInputStream.byteBuffer2Record(request.request,
-                        getChildren2Request);
+                ByteBufferInputStream.byteBuffer2Record(request.request, getChildren2Request);
                 Stat stat = new Stat();
                 DataNode n = zks.getZKDatabase().getNode(getChildren2Request.getPath());
                 if (n == null) {
                     throw new KeeperException.NoNodeException();
                 }
-                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n),
-                        ZooDefs.Perms.READ,
-                        request.authInfo);
-                List<String> children = zks.getZKDatabase().getChildren(
-                        getChildren2Request.getPath(), stat, getChildren2Request
-                                .getWatch() ? cnxn : null);
+                PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().aclForNode(n), ZooDefs.Perms.READ, request.authInfo);
+                List<String> children = zks.getZKDatabase().getChildren(getChildren2Request.getPath(), stat, getChildren2Request.getWatch() ? cnxn : null);
                 rsp = new GetChildren2Response(children, stat);
                 break;
             }
             case OpCode.checkWatches: {
                 lastOp = "CHKW";
                 CheckWatchesRequest checkWatches = new CheckWatchesRequest();
-                ByteBufferInputStream.byteBuffer2Record(request.request,
-                        checkWatches);
+                ByteBufferInputStream.byteBuffer2Record(request.request, checkWatches);
                 WatcherType type = WatcherType.fromInt(checkWatches.getType());
-                boolean containsWatcher = zks.getZKDatabase().containsWatcher(
-                        checkWatches.getPath(), type, cnxn);
+                boolean containsWatcher = zks.getZKDatabase().containsWatcher(checkWatches.getPath(), type, cnxn);
                 if (!containsWatcher) {
-                    String msg = String.format(Locale.ENGLISH, "%s (type: %s)",
-                            checkWatches.getPath(), type);
+                    String msg = String.format(Locale.ENGLISH, "%s (type: %s)", checkWatches.getPath(), type);
                     throw new KeeperException.NoWatcherException(msg);
                 }
                 break;
@@ -440,14 +387,11 @@ public class FinalRequestProcessor implements RequestProcessor {
             case OpCode.removeWatches: {
                 lastOp = "REMW";
                 RemoveWatchesRequest removeWatches = new RemoveWatchesRequest();
-                ByteBufferInputStream.byteBuffer2Record(request.request,
-                        removeWatches);
+                ByteBufferInputStream.byteBuffer2Record(request.request, removeWatches);
                 WatcherType type = WatcherType.fromInt(removeWatches.getType());
-                boolean removed = zks.getZKDatabase().removeWatch(
-                        removeWatches.getPath(), type, cnxn);
+                boolean removed = zks.getZKDatabase().removeWatch(removeWatches.getPath(), type, cnxn);
                 if (!removed) {
-                    String msg = String.format(Locale.ENGLISH, "%s (type: %s)",
-                            removeWatches.getPath(), type);
+                    String msg = String.format(Locale.ENGLISH, "%s (type: %s)", removeWatches.getPath(), type);
                     throw new KeeperException.NoWatcherException(msg);
                 }
                 break;
@@ -479,17 +423,12 @@ public class FinalRequestProcessor implements RequestProcessor {
             LOG.error("Dumping request buffer: 0x" + sb.toString());
             err = Code.MARSHALLINGERROR;
         }
-
         long lastZxid = zks.getZKDatabase().getDataTreeLastProcessedZxid();
-        ReplyHeader hdr =
-            new ReplyHeader(request.cxid, lastZxid, err.intValue());
-
+        ReplyHeader hdr = new ReplyHeader(request.cxid, lastZxid, err.intValue());
         zks.serverStats().updateLatency(request.createTime);
-        cnxn.updateStatsForResponse(request.cxid, lastZxid, lastOp,
-                    request.createTime, Time.currentElapsedTime());
-
+        cnxn.updateStatsForResponse(request.cxid, lastZxid, lastOp, request.createTime, Time.currentElapsedTime());
         try {
-            cnxn.sendResponse(hdr, rsp, "response");
+            cnxn.sendResponse(hdr, rsp, "response"); // 响应客户端
             if (request.type == OpCode.closeSession) {
                 cnxn.sendCloseSession();
             }

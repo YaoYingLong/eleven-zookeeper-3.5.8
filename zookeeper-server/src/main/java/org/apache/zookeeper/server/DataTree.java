@@ -432,10 +432,7 @@ public class DataTree {
      * @throws NoNodeException
      * @throws KeeperException
      */
-    public void createNode(final String path, byte data[], List<ACL> acl,
-            long ephemeralOwner, int parentCVersion, long zxid, long time, Stat outputStat)
-            throws KeeperException.NoNodeException,
-            KeeperException.NodeExistsException {
+    public void createNode(final String path, byte data[], List<ACL> acl, long ephemeralOwner, int parentCVersion, long zxid, long time, Stat outputStat) throws KeeperException.NoNodeException, KeeperException.NodeExistsException {
         int lastSlash = path.lastIndexOf('/');
         String parentName = path.substring(0, lastSlash);
         String childName = path.substring(lastSlash + 1);
@@ -457,7 +454,6 @@ public class DataTree {
             if (children.contains(childName)) {
                 throw new KeeperException.NodeExistsException();
             }
-
             if (parentCVersion == -1) {
                 parentCVersion = parent.stat.getCversion();
                 parentCVersion++;
@@ -496,8 +492,7 @@ public class DataTree {
                 pTrie.addPath(parentName.substring(quotaZookeeper.length()));
             }
             if (Quotas.statNode.equals(childName)) {
-                updateQuotaForPath(parentName
-                        .substring(quotaZookeeper.length()));
+                updateQuotaForPath(parentName.substring(quotaZookeeper.length()));
             }
         }
         // also check to update the quotas for this node
@@ -508,8 +503,7 @@ public class DataTree {
             updateBytes(lastPrefix, data == null ? 0 : data.length);
         }
         dataWatches.triggerWatch(path, Event.EventType.NodeCreated);
-        childWatches.triggerWatch(parentName.equals("") ? "/" : parentName,
-                Event.EventType.NodeChildrenChanged);
+        childWatches.triggerWatch(parentName.equals("") ? "/" : parentName, Event.EventType.NodeChildrenChanged);
     }
 
     /**
@@ -788,10 +782,8 @@ public class DataTree {
         return this.processTxn(header, txn, false);
     }
 
-    public ProcessTxnResult processTxn(TxnHeader header, Record txn, boolean isSubTxn)
-    {
+    public ProcessTxnResult processTxn(TxnHeader header, Record txn, boolean isSubTxn) {
         ProcessTxnResult rc = new ProcessTxnResult();
-
         try {
             rc.clientId = header.getClientId();
             rc.cxid = header.getCxid();
@@ -803,51 +795,27 @@ public class DataTree {
                 case OpCode.create:
                     CreateTxn createTxn = (CreateTxn) txn;
                     rc.path = createTxn.getPath();
-                    createNode(
-                            createTxn.getPath(),
-                            createTxn.getData(),
-                            createTxn.getAcl(),
-                            createTxn.getEphemeral() ? header.getClientId() : 0,
-                            createTxn.getParentCVersion(),
-                            header.getZxid(), header.getTime(), null);
+                    createNode(createTxn.getPath(), createTxn.getData(), createTxn.getAcl(), createTxn.getEphemeral() ? header.getClientId() : 0, createTxn.getParentCVersion(), header.getZxid(), header.getTime(), null);
                     break;
                 case OpCode.create2:
                     CreateTxn create2Txn = (CreateTxn) txn;
                     rc.path = create2Txn.getPath();
                     Stat stat = new Stat();
-                    createNode(
-                            create2Txn.getPath(),
-                            create2Txn.getData(),
-                            create2Txn.getAcl(),
-                            create2Txn.getEphemeral() ? header.getClientId() : 0,
-                            create2Txn.getParentCVersion(),
-                            header.getZxid(), header.getTime(), stat);
+                    createNode(create2Txn.getPath(), create2Txn.getData(), create2Txn.getAcl(), create2Txn.getEphemeral() ? header.getClientId() : 0, create2Txn.getParentCVersion(), header.getZxid(), header.getTime(), stat);
                     rc.stat = stat;
                     break;
                 case OpCode.createTTL:
                     CreateTTLTxn createTtlTxn = (CreateTTLTxn) txn;
                     rc.path = createTtlTxn.getPath();
                     stat = new Stat();
-                    createNode(
-                            createTtlTxn.getPath(),
-                            createTtlTxn.getData(),
-                            createTtlTxn.getAcl(),
-                            EphemeralType.TTL.toEphemeralOwner(createTtlTxn.getTtl()),
-                            createTtlTxn.getParentCVersion(),
-                            header.getZxid(), header.getTime(), stat);
+                    createNode(createTtlTxn.getPath(), createTtlTxn.getData(), createTtlTxn.getAcl(), EphemeralType.TTL.toEphemeralOwner(createTtlTxn.getTtl()), createTtlTxn.getParentCVersion(), header.getZxid(), header.getTime(), stat);
                     rc.stat = stat;
                     break;
                 case OpCode.createContainer:
                     CreateContainerTxn createContainerTxn = (CreateContainerTxn) txn;
                     rc.path = createContainerTxn.getPath();
                     stat = new Stat();
-                    createNode(
-                            createContainerTxn.getPath(),
-                            createContainerTxn.getData(),
-                            createContainerTxn.getAcl(),
-                            EphemeralType.CONTAINER_EPHEMERAL_OWNER,
-                            createContainerTxn.getParentCVersion(),
-                            header.getZxid(), header.getTime(), stat);
+                    createNode(createContainerTxn.getPath(), createContainerTxn.getData(), createContainerTxn.getAcl(), EphemeralType.CONTAINER_EPHEMERAL_OWNER, createContainerTxn.getParentCVersion(), header.getZxid(), header.getTime(), stat);
                     rc.stat = stat;
                     break;
                 case OpCode.delete:
@@ -860,15 +828,12 @@ public class DataTree {
                 case OpCode.setData:
                     SetDataTxn setDataTxn = (SetDataTxn) txn;
                     rc.path = setDataTxn.getPath();
-                    rc.stat = setData(setDataTxn.getPath(), setDataTxn
-                            .getData(), setDataTxn.getVersion(), header
-                            .getZxid(), header.getTime());
+                    rc.stat = setData(setDataTxn.getPath(), setDataTxn.getData(), setDataTxn.getVersion(), header.getZxid(), header.getTime());
                     break;
                 case OpCode.setACL:
                     SetACLTxn setACLTxn = (SetACLTxn) txn;
                     rc.path = setACLTxn.getPath();
-                    rc.stat = setACL(setACLTxn.getPath(), setACLTxn.getAcl(),
-                            setACLTxn.getVersion());
+                    rc.stat = setACL(setACLTxn.getPath(), setACLTxn.getAcl(), setACLTxn.getVersion());
                     break;
                 case OpCode.closeSession:
                     killSession(header.getClientId(), header.getZxid());
@@ -929,9 +894,7 @@ public class DataTree {
                         ByteBufferInputStream.byteBuffer2Record(bb, record);
 
                         if (failed && subtxn.getType() != OpCode.error){
-                            int ec = post_failed ? Code.RUNTIMEINCONSISTENCY.intValue()
-                                                 : Code.OK.intValue();
-
+                            int ec = post_failed ? Code.RUNTIMEINCONSISTENCY.intValue() : Code.OK.intValue();
                             subtxn.setType(OpCode.error);
                             record = new ErrorTxn(ec);
                         }
@@ -940,9 +903,7 @@ public class DataTree {
                             assert(subtxn.getType() == OpCode.error) ;
                         }
 
-                        TxnHeader subHdr = new TxnHeader(header.getClientId(), header.getCxid(),
-                                                         header.getZxid(), header.getTime(),
-                                                         subtxn.getType());
+                        TxnHeader subHdr = new TxnHeader(header.getClientId(), header.getCxid(), header.getZxid(), header.getTime(), subtxn.getType());
                         ProcessTxnResult subRc = processTxn(subHdr, record, true);
                         rc.multiResult.add(subRc);
                         if (subRc.err != 0 && rc.err == 0) {

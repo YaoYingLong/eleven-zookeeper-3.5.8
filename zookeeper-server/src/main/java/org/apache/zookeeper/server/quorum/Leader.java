@@ -91,8 +91,7 @@ public class Leader {
     volatile LearnerCnxAcceptor cnxAcceptor = null;
 
     // list of all the followers
-    private final HashSet<LearnerHandler> learners =
-            new HashSet<LearnerHandler>();
+    private final HashSet<LearnerHandler> learners = new HashSet<LearnerHandler>();
 
     private final BufferStats proposalStats;
 
@@ -153,8 +152,7 @@ public class Leader {
     }
 
     // Pending sync requests. Must access under 'this' lock.
-    private final HashMap<Long, List<LearnerSyncRequest>> pendingSyncs =
-            new HashMap<Long, List<LearnerSyncRequest>>();
+    private final HashMap<Long, List<LearnerSyncRequest>> pendingSyncs = new HashMap<Long, List<LearnerSyncRequest>>();
 
     synchronized public int getNumPendingSyncs() {
         return pendingSyncs.size();
@@ -764,7 +762,7 @@ public class Leader {
             commit(zxid); // 向follower发送commit命令
             inform(p); // 向Observer同步发送proposal
         }
-        zk.commitProcessor.commit(p.request);
+        zk.commitProcessor.commit(p.request); // 唤醒CommitProcessor线程的wait等待
         if (pendingSyncs.containsKey(zxid)) {
             for (LearnerSyncRequest r : pendingSyncs.remove(zxid)) {
                 sendSync(r);
@@ -781,7 +779,7 @@ public class Leader {
      * @param zxid, the zxid of the proposal sent out
      * @param sid,  the id of the server that sent the ack
      */
-    synchronized public void processAck(long sid, long zxid, SocketAddress followerAddr) {
+    synchronized public void processAck(long sid, long zxid, SocketAddress followerAddr) { // 在LearnerHandler中当Leader接收到Follower的ACK时也会调用该方法
         if (!allowedToCommit) return; // last op committed was a leader change - from now on 
         // the new leader should commit
         if (LOG.isTraceEnabled()) {
@@ -813,7 +811,7 @@ public class Leader {
             // The proposal has already been committed
             return;
         }
-        Proposal p = outstandingProposals.get(zxid);
+        Proposal p = outstandingProposals.get(zxid); // 在ProposalRequestProcessor中给给follower发送propose之前放入
         if (p == null) {
             LOG.warn("Trying to commit future proposal: zxid 0x{} from {}", Long.toHexString(zxid), followerAddr);
             return;
@@ -857,12 +855,7 @@ public class Leader {
          */
         ToBeAppliedRequestProcessor(RequestProcessor next, Leader leader) {
             if (!(next instanceof FinalRequestProcessor)) {
-                throw new RuntimeException(ToBeAppliedRequestProcessor.class
-                        .getName()
-                        + " must be connected to "
-                        + FinalRequestProcessor.class.getName()
-                        + " not "
-                        + next.getClass().getName());
+                throw new RuntimeException(ToBeAppliedRequestProcessor.class.getName() + " must be connected to " + FinalRequestProcessor.class.getName() + " not " + next.getClass().getName());
             }
             this.leader = leader;
             this.next = next;
@@ -874,8 +867,7 @@ public class Leader {
          * @see org.apache.zookeeper.server.RequestProcessor#processRequest(org.apache.zookeeper.server.Request)
          */
         public void processRequest(Request request) throws RequestProcessorException {
-            next.processRequest(request);
-
+            next.processRequest(request);// 调用下一个请求处理器FinalRequestProcessor
             // The only requests that should be on toBeApplied are write
             // requests, for which we will have a hdr. We can't simply use
             // request.zxid here because that is set on read requests to equal
@@ -886,7 +878,7 @@ public class Leader {
                 if (iter.hasNext()) {
                     Proposal p = iter.next();
                     if (p.request != null && p.request.zxid == zxid) {
-                        iter.remove();
+                        iter.remove(); // 将在请求从toBeApplied中移除
                         return;
                     }
                 }
@@ -937,7 +929,7 @@ public class Leader {
             lastCommitted = zxid;
         }
         QuorumPacket qp = new QuorumPacket(Leader.COMMIT, zxid, null, null);
-        sendPacket(qp);
+        sendPacket(qp); // 给所有follower发送COMMIT命令
     }
 
     //commit and send some info
