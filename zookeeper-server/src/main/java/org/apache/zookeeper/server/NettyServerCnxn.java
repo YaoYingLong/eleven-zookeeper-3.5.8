@@ -327,17 +327,11 @@ public class NettyServerCnxn extends ServerCnxn {
     void processMessage(ByteBuf buf) {
         checkIsInEventLoop("processMessage");
         if (LOG.isDebugEnabled()) {
-            LOG.debug("0x{} queuedBuffer: {}",
-                    Long.toHexString(sessionId),
-                    queuedBuffer);
+            LOG.debug("0x{} queuedBuffer: {}", Long.toHexString(sessionId), queuedBuffer);
         }
-
         if (LOG.isTraceEnabled()) {
-            LOG.trace("0x{} buf {}",
-                    Long.toHexString(sessionId),
-                    ByteBufUtil.hexDump(buf));
+            LOG.trace("0x{} buf {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(buf));
         }
-
         if (throttled.get()) {
             LOG.debug("Received message while throttled");
             // we are throttled, so we need to queue
@@ -347,9 +341,7 @@ public class NettyServerCnxn extends ServerCnxn {
             }
             appendToQueuedBuffer(buf.retainedDuplicate());
             if (LOG.isTraceEnabled()) {
-                LOG.trace("0x{} queuedBuffer {}",
-                        Long.toHexString(sessionId),
-                        ByteBufUtil.hexDump(queuedBuffer));
+                LOG.trace("0x{} queuedBuffer {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(queuedBuffer));
             }
         } else {
             LOG.debug("not throttled");
@@ -370,9 +362,7 @@ public class NettyServerCnxn extends ServerCnxn {
                     appendToQueuedBuffer(buf.retainedSlice(buf.readerIndex(), buf.readableBytes()));
                     if (LOG.isTraceEnabled()) {
                         LOG.trace("Copy is {}", queuedBuffer);
-                        LOG.trace("0x{} queuedBuffer {}",
-                                Long.toHexString(sessionId),
-                                ByteBufUtil.hexDump(queuedBuffer));
+                        LOG.trace("0x{} queuedBuffer {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(queuedBuffer));
                     }
                 }
             }
@@ -387,9 +377,7 @@ public class NettyServerCnxn extends ServerCnxn {
         checkIsInEventLoop("processQueuedBuffer");
         if (queuedBuffer != null) {
             if (LOG.isTraceEnabled()) {
-                LOG.trace("processing queue 0x{} queuedBuffer {}",
-                        Long.toHexString(sessionId),
-                        ByteBufUtil.hexDump(queuedBuffer));
+                LOG.trace("processing queue 0x{} queuedBuffer {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(queuedBuffer));
             }
             receiveMessage(queuedBuffer);
             if (closingChannel) {
@@ -436,39 +424,26 @@ public class NettyServerCnxn extends ServerCnxn {
             while(message.isReadable() && !throttled.get()) {
                 if (bb != null) {
                     if (LOG.isTraceEnabled()) {
-                        LOG.trace("message readable {} bb len {} {}",
-                                message.readableBytes(),
-                                bb.remaining(),
-                                bb);
+                        LOG.trace("message readable {} bb len {} {}", message.readableBytes(), bb.remaining(), bb);
                         ByteBuffer dat = bb.duplicate();
                         dat.flip();
-                        LOG.trace("0x{} bb {}",
-                                Long.toHexString(sessionId),
-                                ByteBufUtil.hexDump(Unpooled.wrappedBuffer(dat)));
+                        LOG.trace("0x{} bb {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(Unpooled.wrappedBuffer(dat)));
                     }
-
                     if (bb.remaining() > message.readableBytes()) {
                         int newLimit = bb.position() + message.readableBytes();
                         bb.limit(newLimit);
                     }
                     message.readBytes(bb);
                     bb.limit(bb.capacity());
-
                     if (LOG.isTraceEnabled()) {
-                        LOG.trace("after readBytes message readable {} bb len {} {}",
-                                message.readableBytes(),
-                                bb.remaining(),
-                                bb);
+                        LOG.trace("after readBytes message readable {} bb len {} {}", message.readableBytes(), bb.remaining(), bb);
                         ByteBuffer dat = bb.duplicate();
                         dat.flip();
-                        LOG.trace("after readbytes 0x{} bb {}",
-                                Long.toHexString(sessionId),
-                                ByteBufUtil.hexDump(Unpooled.wrappedBuffer(dat)));
+                        LOG.trace("after readbytes 0x{} bb {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(Unpooled.wrappedBuffer(dat)));
                     }
                     if (bb.remaining() == 0) {
                         packetReceived();
                         bb.flip();
-
                         ZooKeeperServer zks = this.zkServer;
                         if (zks == null || !zks.isRunning()) {
                             throw new IOException("ZK down");
@@ -477,14 +452,12 @@ public class NettyServerCnxn extends ServerCnxn {
                             // TODO: if zks.processPacket() is changed to take a ByteBuffer[],
                             // we could implement zero-copy queueing.
                             zks.processPacket(this, bb);
-
                             if (zks.shouldThrottle(outstandingCount.incrementAndGet())) {
                                 disableRecvNoWait();
                             }
                         } else {
                             if (LOG.isDebugEnabled()) {
-                                LOG.debug("got conn req request from {}",
-                                        getRemoteSocketAddress());
+                                LOG.debug("got conn req request from {}", getRemoteSocketAddress());
                             }
                             zks.processConnectRequest(this, bb);
                             initialized = true;

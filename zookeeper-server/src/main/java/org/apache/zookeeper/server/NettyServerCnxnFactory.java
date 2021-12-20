@@ -182,11 +182,8 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Channel active {}", ctx.channel());
             }
-
-            NettyServerCnxn cnxn = new NettyServerCnxn(ctx.channel(),
-                    zkServer, NettyServerCnxnFactory.this);
+            NettyServerCnxn cnxn = new NettyServerCnxn(ctx.channel(), zkServer, NettyServerCnxnFactory.this);
             ctx.channel().attr(CONNECTION_ATTRIBUTE).set(cnxn);
-
             if (secure) {
                 SslHandler sslHandler = ctx.pipeline().get(SslHandler.class);
                 Future<Channel> handshakeFuture = sslHandler.handshakeFuture();
@@ -369,9 +366,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
     private ServerBootstrap configureBootstrapAllocator(ServerBootstrap bootstrap) {
         ByteBufAllocator testAllocator = TEST_ALLOCATOR.get();
         if (testAllocator != null) {
-            return bootstrap
-                    .option(ChannelOption.ALLOCATOR, testAllocator)
-                    .childOption(ChannelOption.ALLOCATOR, testAllocator);
+            return bootstrap.option(ChannelOption.ALLOCATOR, testAllocator).childOption(ChannelOption.ALLOCATOR, testAllocator);
         } else {
             return bootstrap;
         }
@@ -390,7 +385,6 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
             }
         }
         this.shouldUsePortUnification = usePortUnification;
-
         // 初始化Netty线程组
         EventLoopGroup bossGroup = NettyUtils.newNioOrEpollEventLoopGroup(NettyUtils.getClientReachableLocalInetAddressCount());
         EventLoopGroup workerGroup = NettyUtils.newNioOrEpollEventLoopGroup();
@@ -594,8 +588,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
     }
     
     @Override
-    public void startup(ZooKeeperServer zks, boolean startServer)
-            throws IOException, InterruptedException {
+    public void startup(ZooKeeperServer zks, boolean startServer) throws IOException, InterruptedException {
         start();
         setZooKeeperServer(zks);
         if (startServer) {

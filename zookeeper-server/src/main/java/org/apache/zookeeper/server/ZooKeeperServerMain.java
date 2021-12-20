@@ -40,11 +40,9 @@ import org.slf4j.LoggerFactory;
  */
 @InterfaceAudience.Public
 public class ZooKeeperServerMain {
-    private static final Logger LOG =
-        LoggerFactory.getLogger(ZooKeeperServerMain.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperServerMain.class);
 
-    private static final String USAGE =
-        "Usage: ZooKeeperServerMain configfile | port datadir [ticktime] [maxcnxns]";
+    private static final String USAGE = "Usage: ZooKeeperServerMain configfile | port datadir [ticktime] [maxcnxns]";
 
     // ZooKeeper server supports two kinds of connection: unencrypted and encrypted.
     private ServerCnxnFactory cnxnFactory;

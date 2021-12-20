@@ -153,30 +153,22 @@ public class ZooKeeperServerMainTest extends ZKTestCase implements Watcher {
     @Test(timeout = 30000)
     public void testNonRecoverableError() throws Exception {
         ClientBase.setupTestEnv();
-
         final int CLIENT_PORT = PortAssignment.unique();
 
         MainThread main = new MainThread(CLIENT_PORT, true, null);
         main.start();
 
-        Assert.assertTrue("waiting for server being up",
-                ClientBase.waitForServerUp("127.0.0.1:" + CLIENT_PORT,
-                        CONNECTION_TIMEOUT));
+        Assert.assertTrue("waiting for server being up", ClientBase.waitForServerUp("127.0.0.1:" + CLIENT_PORT, CONNECTION_TIMEOUT));
 
+        ZooKeeper zk = new ZooKeeper("127.0.0.1:" + CLIENT_PORT, ClientBase.CONNECTION_TIMEOUT, this);
 
-        ZooKeeper zk = new ZooKeeper("127.0.0.1:" + CLIENT_PORT,
-                ClientBase.CONNECTION_TIMEOUT, this);
-
-        zk.create("/foo1", "foobar".getBytes(), Ids.OPEN_ACL_UNSAFE,
-                CreateMode.PERSISTENT);
+        zk.create("/foo1", "foobar".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         Assert.assertEquals(new String(zk.getData("/foo1", null, null)), "foobar");
 
         // inject problem in server
-        ZooKeeperServer zooKeeperServer = main.getCnxnFactory()
-                .getZooKeeperServer();
+        ZooKeeperServer zooKeeperServer = main.getCnxnFactory().getZooKeeperServer();
         FileTxnSnapLog snapLog = zooKeeperServer.getTxnLogFactory();
-        FileTxnSnapLog fileTxnSnapLogWithError = new FileTxnSnapLog(
-                snapLog.getDataDir(), snapLog.getSnapDir()) {
+        FileTxnSnapLog fileTxnSnapLogWithError = new FileTxnSnapLog(snapLog.getDataDir(), snapLog.getSnapDir()) {
             @Override
             public void commit() throws IOException {
                 throw new IOException("Input/output error");
@@ -187,16 +179,13 @@ public class ZooKeeperServerMainTest extends ZKTestCase implements Watcher {
 
         try {
             // do create operation, so that injected IOException is thrown
-            zk.create("/foo2", "foobar".getBytes(), Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT);
+            zk.create("/foo2", "foobar".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             fail("IOException is expected as error is injected in transaction log commit funtionality");
         } catch (Exception e) {
             // do nothing
         }
         zk.close();
-        Assert.assertTrue("waiting for server down",
-                ClientBase.waitForServerDown("127.0.0.1:" + CLIENT_PORT,
-                        ClientBase.CONNECTION_TIMEOUT));
+        Assert.assertTrue("waiting for server down", ClientBase.waitForServerDown("127.0.0.1:" + CLIENT_PORT, ClientBase.CONNECTION_TIMEOUT));
         fileTxnSnapLogWithError.close();
         main.shutdown();
         main.deleteDirs();

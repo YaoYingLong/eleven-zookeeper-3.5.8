@@ -84,10 +84,8 @@ public class ZKClientConfig extends ZKConfig {
      * java system property
      */
     private void initFromJavaSystemProperties() {
-        setProperty(ZOOKEEPER_REQUEST_TIMEOUT,
-                System.getProperty(ZOOKEEPER_REQUEST_TIMEOUT));
-        setProperty(ZOOKEEPER_SERVER_PRINCIPAL,
-                System.getProperty(ZOOKEEPER_SERVER_PRINCIPAL));
+        setProperty(ZOOKEEPER_REQUEST_TIMEOUT, System.getProperty(ZOOKEEPER_REQUEST_TIMEOUT));
+        setProperty(ZOOKEEPER_SERVER_PRINCIPAL, System.getProperty(ZOOKEEPER_SERVER_PRINCIPAL));
     }
 
     @Override

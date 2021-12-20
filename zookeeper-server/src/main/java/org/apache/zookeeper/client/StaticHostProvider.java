@@ -84,8 +84,7 @@ public final class StaticHostProvider implements HostProvider {
      *             if serverAddresses is empty or resolves to an empty list
      */
     public StaticHostProvider(Collection<InetSocketAddress> serverAddresses) {
-        init(serverAddresses,
-                System.currentTimeMillis() ^ this.hashCode(),
+        init(serverAddresses, System.currentTimeMillis() ^ this.hashCode(),
                 new Resolver() {
             @Override
             public InetAddress[] getAllByName(String name) throws UnknownHostException {

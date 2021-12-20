@@ -130,7 +130,6 @@ public class ClientCnxnSocketNetty extends ClientCnxnSocket {
     @Override
     void connect(InetSocketAddress addr) throws IOException {
         firstConnect = new CountDownLatch(1);
-
         Bootstrap bootstrap = new Bootstrap()
                 .group(eventLoopGroup)
                 .channel(NettyUtils.nioOrEpollSocketChannel())
