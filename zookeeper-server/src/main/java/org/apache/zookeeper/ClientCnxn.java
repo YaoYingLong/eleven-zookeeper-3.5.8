@@ -408,8 +408,7 @@ public class ClientCnxn {
             }
             sessionState = event.getState();
             final Set<Watcher> watchers;
-            if (materializedWatchers == null) {
-                // materialize the watchers based on the event
+            if (materializedWatchers == null) {// materialize the watchers based on the event
                 watchers = watcher.materialize(event.getState(), event.getType(), event.getPath());
             } else {
                 watchers = new HashSet<Watcher>();
@@ -472,7 +471,7 @@ public class ClientCnxn {
                     WatcherSetEventPair pair = (WatcherSetEventPair) event;
                     for (Watcher watcher : pair.watchers) {
                         try {
-                            watcher.process(pair.event);
+                            watcher.process(pair.event); // 执行具体Watcher的process方法
                         } catch (Throwable t) {
                             LOG.error("Error while calling watcher ", t);
                         }
@@ -598,7 +597,7 @@ public class ClientCnxn {
         }
         // Add all the removed watch events to the event queue, so that the
         // clients will be notified with 'Data/Child WatchRemoved' event type.
-        if (p.watchDeregistration != null) {
+        if (p.watchDeregistration != null) { // 将所有删除的监视事件添加到事件队列中，以便客户端将收到DataChild WatchRemoved事件类型的通知。
             Map<EventType, Set<Watcher>> materializedWatchers = null;
             try {
                 materializedWatchers = p.watchDeregistration.unregister(err);
@@ -617,7 +616,6 @@ public class ClientCnxn {
                 p.replyHeader.setErr(ke.code().intValue());
             }
         }
-
         if (p.cb == null) {
             synchronized (p) {
                 p.finished = true;
@@ -629,15 +627,12 @@ public class ClientCnxn {
         }
     }
 
-    void queueEvent(String clientPath, int err,
-                    Set<Watcher> materializedWatchers, EventType eventType) {
+    void queueEvent(String clientPath, int err, Set<Watcher> materializedWatchers, EventType eventType) {
         KeeperState sessionState = KeeperState.SyncConnected;
-        if (KeeperException.Code.SESSIONEXPIRED.intValue() == err
-                || KeeperException.Code.CONNECTIONLOSS.intValue() == err) {
+        if (KeeperException.Code.SESSIONEXPIRED.intValue() == err || KeeperException.Code.CONNECTIONLOSS.intValue() == err) {
             sessionState = Event.KeeperState.Disconnected;
         }
-        WatchedEvent event = new WatchedEvent(eventType, sessionState,
-                clientPath);
+        WatchedEvent event = new WatchedEvent(eventType, sessionState, clientPath);
         eventThread.queueEvent(event, materializedWatchers);
     }
 
@@ -726,8 +721,7 @@ public class ClientCnxn {
                 }
                 return;
             }
-            if (replyHdr.getXid() == -4) {
-                // -4 is the xid for AuthPacket               
+            if (replyHdr.getXid() == -4) {// -4 is the xid for AuthPacket
                 if (replyHdr.getErr() == KeeperException.Code.AUTHFAILED.intValue()) {
                     state = States.AUTH_FAILED;
                     eventThread.queueEvent(new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.AuthFailed, null));
@@ -1188,20 +1182,14 @@ public class ClientCnxn {
          * Callback invoked by the ClientCnxnSocket once a connection has been
          * established.
          */
-        void onConnected(int _negotiatedSessionTimeout, long _sessionId,
-                         byte[] _sessionPasswd, boolean isRO) throws IOException {
+        void onConnected(int _negotiatedSessionTimeout, long _sessionId, byte[] _sessionPasswd, boolean isRO) throws IOException {
             negotiatedSessionTimeout = _negotiatedSessionTimeout;
             if (negotiatedSessionTimeout <= 0) {
                 state = States.CLOSED;
-
-                eventThread.queueEvent(new WatchedEvent(
-                        Watcher.Event.EventType.None,
-                        Watcher.Event.KeeperState.Expired, null));
+                eventThread.queueEvent(new WatchedEvent(Watcher.Event.EventType.None, Watcher.Event.KeeperState.Expired, null));
                 eventThread.queueEventOfDeath();
-
                 String warnInfo;
-                warnInfo = "Unable to reconnect to ZooKeeper service, session 0x"
-                        + Long.toHexString(sessionId) + " has expired";
+                warnInfo = "Unable to reconnect to ZooKeeper service, session 0x" + Long.toHexString(sessionId) + " has expired";
                 LOG.warn(warnInfo);
                 throw new SessionExpiredException(warnInfo);
             }
@@ -1213,19 +1201,15 @@ public class ClientCnxn {
             hostProvider.onConnected();
             sessionId = _sessionId;
             sessionPasswd = _sessionPasswd;
-            state = (isRO) ?
-                    States.CONNECTEDREADONLY : States.CONNECTED;
+            state = (isRO) ? States.CONNECTEDREADONLY : States.CONNECTED;
             seenRwServerBefore |= !isRO;
             LOG.info("Session establishment complete on server "
                     + clientCnxnSocket.getRemoteSocketAddress()
                     + ", sessionid = 0x" + Long.toHexString(sessionId)
                     + ", negotiated timeout = " + negotiatedSessionTimeout
                     + (isRO ? " (READ-ONLY mode)" : ""));
-            KeeperState eventState = (isRO) ?
-                    KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
-            eventThread.queueEvent(new WatchedEvent(
-                    Watcher.Event.EventType.None,
-                    eventState, null));
+            KeeperState eventState = (isRO) ? KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
+            eventThread.queueEvent(new WatchedEvent(Watcher.Event.EventType.None, eventState, null));
         }
 
         void close() {
@@ -1423,9 +1407,10 @@ public class ClientCnxn {
                 if (h.getType() == OpCode.closeSession) {
                     closing = true;
                 }
-                outgoingQueue.add(packet);
+                outgoingQueue.add(packet); // 将发送数据包放入outgoingQueue阻塞队列
             }
         }
+        // 用于唤醒阻塞在select方法上的线程，为了出发写事件，底层会往管道中写一个字节，写事件出发后会将待发送队列中的命令数据发给服务端
         sendThread.getClientCnxnSocket().packetAdded();
         return packet;
     }

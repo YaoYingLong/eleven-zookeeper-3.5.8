@@ -397,11 +397,8 @@ public class ZooKeeper implements AutoCloseable {
          *                                                        Event.EventType, java.lang.String)
          */
         @Override
-        public Set<Watcher> materialize(Watcher.Event.KeeperState state,
-                                        Watcher.Event.EventType type,
-                                        String clientPath) {
+        public Set<Watcher> materialize(Watcher.Event.KeeperState state, Watcher.Event.EventType type, String clientPath) {
             Set<Watcher> result = new HashSet<Watcher>();
-
             switch (type) {
                 case None:
                     result.add(defaultWatcher);
@@ -432,7 +429,6 @@ public class ZooKeeper implements AutoCloseable {
                             childWatches.clear();
                         }
                     }
-
                     return result;
                 case NodeDataChanged:
                 case NodeCreated:
@@ -452,8 +448,7 @@ public class ZooKeeper implements AutoCloseable {
                     synchronized (dataWatches) {
                         addTo(dataWatches.remove(clientPath), result);
                     }
-                    // XXX This shouldn't be needed, but just in case
-                    synchronized (existWatches) {
+                    synchronized (existWatches) {  // XXX This shouldn't be needed, but just in case
                         Set<Watcher> list = existWatches.remove(clientPath);
                         if (list != null) {
                             addTo(list, result);
@@ -465,12 +460,10 @@ public class ZooKeeper implements AutoCloseable {
                     }
                     break;
                 default:
-                    String msg = "Unhandled watch event type " + type
-                            + " with state " + state + " on path " + clientPath;
+                    String msg = "Unhandled watch event type " + type + " with state " + state + " on path " + clientPath;
                     LOG.error(msg);
                     throw new RuntimeException(msg);
             }
-
             return result;
         }
     }
@@ -1922,19 +1915,15 @@ public class ZooKeeper implements AutoCloseable {
      * @throws InterruptedException     If the server transaction is interrupted.
      * @throws IllegalArgumentException if an invalid path is specified
      */
-    public byte[] getData(final String path, Watcher watcher, Stat stat)
-            throws KeeperException, InterruptedException {
+    public byte[] getData(final String path, Watcher watcher, Stat stat) throws KeeperException, InterruptedException {
         final String clientPath = path;
         PathUtils.validatePath(clientPath);
-
         // the watch contains the un-chroot path
         WatchRegistration wcb = null;
         if (watcher != null) {
             wcb = new DataWatchRegistration(watcher, clientPath);
         }
-
         final String serverPath = prependChroot(clientPath);
-
         RequestHeader h = new RequestHeader();
         h.setType(ZooDefs.OpCode.getData);
         GetDataRequest request = new GetDataRequest();
@@ -1943,8 +1932,7 @@ public class ZooKeeper implements AutoCloseable {
         GetDataResponse response = new GetDataResponse();
         ReplyHeader r = cnxn.submitRequest(h, request, response, wcb);
         if (r.getErr() != 0) {
-            throw KeeperException.create(KeeperException.Code.get(r.getErr()),
-                    clientPath);
+            throw KeeperException.create(KeeperException.Code.get(r.getErr()), clientPath);
         }
         if (stat != null) {
             DataTree.copyStat(response.getStat(), stat);
@@ -1970,8 +1958,7 @@ public class ZooKeeper implements AutoCloseable {
      * @throws KeeperException      If the server signals an error with a non-zero error code
      * @throws InterruptedException If the server transaction is interrupted.
      */
-    public byte[] getData(String path, boolean watch, Stat stat)
-            throws KeeperException, InterruptedException {
+    public byte[] getData(String path, boolean watch, Stat stat) throws KeeperException, InterruptedException {
         return getData(path, watch ? watchManager.defaultWatcher : null, stat);
     }
 

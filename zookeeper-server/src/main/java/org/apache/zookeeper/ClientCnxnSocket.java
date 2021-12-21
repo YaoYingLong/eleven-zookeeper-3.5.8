@@ -130,27 +130,23 @@ abstract class ClientCnxnSocket {
                 buf.append(Integer.toHexString(b) + ",");
             }
             buf.append("]");
-            LOG.trace("readConnectResult " + incomingBuffer.remaining() + " "
-                    + buf.toString());
+            LOG.trace("readConnectResult " + incomingBuffer.remaining() + " " + buf.toString());
         }
         ByteBufferInputStream bbis = new ByteBufferInputStream(incomingBuffer);
         BinaryInputArchive bbia = BinaryInputArchive.getArchive(bbis);
         ConnectResponse conRsp = new ConnectResponse();
         conRsp.deserialize(bbia, "connect");
-
         // read "is read-only" flag
         boolean isRO = false;
         try {
             isRO = bbia.readBool("readOnly");
         } catch (IOException e) {
-            // this is ok -- just a packet from an old server which
-            // doesn't contain readOnly field
+            // this is ok -- just a packet from an old server which doesn't contain readOnly field
             LOG.warn("Connected to an old server; r-o mode will be unavailable");
         }
 
         this.sessionId = conRsp.getSessionId();
-        sendThread.onConnected(conRsp.getTimeOut(), this.sessionId,
-                conRsp.getPasswd(), isRO);
+        sendThread.onConnected(conRsp.getTimeOut(), this.sessionId, conRsp.getPasswd(), isRO);
     }
 
     abstract boolean isConnected();

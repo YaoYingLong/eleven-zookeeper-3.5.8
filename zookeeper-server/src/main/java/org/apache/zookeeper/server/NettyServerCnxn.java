@@ -460,16 +460,11 @@ public class NettyServerCnxn extends ServerCnxn {
                     }
                 } else {
                     if (LOG.isTraceEnabled()) {
-                        LOG.trace("message readable {} bblenrem {}",
-                                message.readableBytes(),
-                                bbLen.remaining());
+                        LOG.trace("message readable {} bblenrem {}", message.readableBytes(), bbLen.remaining());
                         ByteBuffer dat = bbLen.duplicate();
                         dat.flip();
-                        LOG.trace("0x{} bbLen {}",
-                                Long.toHexString(sessionId),
-                                ByteBufUtil.hexDump(Unpooled.wrappedBuffer(dat)));
+                        LOG.trace("0x{} bbLen {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(Unpooled.wrappedBuffer(dat)));
                     }
-
                     if (message.readableBytes() < bbLen.remaining()) {
                         bbLen.limit(bbLen.position() + message.readableBytes());
                     }
@@ -477,19 +472,13 @@ public class NettyServerCnxn extends ServerCnxn {
                     bbLen.limit(bbLen.capacity());
                     if (bbLen.remaining() == 0) {
                         bbLen.flip();
-
                         if (LOG.isTraceEnabled()) {
-                            LOG.trace("0x{} bbLen {}",
-                                    Long.toHexString(sessionId),
-                                    ByteBufUtil.hexDump(Unpooled.wrappedBuffer(bbLen)));
+                            LOG.trace("0x{} bbLen {}", Long.toHexString(sessionId), ByteBufUtil.hexDump(Unpooled.wrappedBuffer(bbLen)));
                         }
                         int len = bbLen.getInt();
                         if (LOG.isTraceEnabled()) {
-                            LOG.trace("0x{} bbLen len is {}",
-                                    Long.toHexString(sessionId),
-                                    len);
+                            LOG.trace("0x{} bbLen len is {}", Long.toHexString(sessionId), len);
                         }
-
                         bbLen.clear();
                         if (!initialized) {
                             if (checkFourLetterWord(channel, message, len)) {

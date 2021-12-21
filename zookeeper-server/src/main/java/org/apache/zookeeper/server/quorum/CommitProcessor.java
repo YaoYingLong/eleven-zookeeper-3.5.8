@@ -168,7 +168,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                 while (!stopped && !isWaitingForCommit() && !isProcessingCommit() && (request = queuedRequests.poll()) != null) {
                     if (needCommit(request)) {
                         nextPending.set(request); // 放入等待提交请求队列
-                    } else {
+                    } else { // 若是不需要执行commit的getData等命令直接往下走
                         sendToNextProcessor(request);
                     }
                 }

@@ -53,10 +53,8 @@ public class WatchDeregistration {
      *            the result code of the operation that attempted to remove
      *            watch on the path.
      */
-    public Map<EventType, Set<Watcher>> unregister(int rc)
-            throws KeeperException {
-        return zkManager.removeWatcher(clientPath, watcher, watcherType, local,
-                rc);
+    public Map<EventType, Set<Watcher>> unregister(int rc) throws KeeperException {
+        return zkManager.removeWatcher(clientPath, watcher, watcherType, local, rc);
     }
 
     /**

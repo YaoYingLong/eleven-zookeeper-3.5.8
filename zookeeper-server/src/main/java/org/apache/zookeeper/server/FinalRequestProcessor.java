@@ -230,8 +230,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                 case OpCode.sync: {
                     lastOp = "SYNC";
                     SyncRequest syncRequest = new SyncRequest();
-                    ByteBufferInputStream.byteBuffer2Record(request.request,
-                            syncRequest);
+                    ByteBufferInputStream.byteBuffer2Record(request.request, syncRequest);
                     rsp = new SyncResponse(syncRequest.getPath());
                     break;
                 }
