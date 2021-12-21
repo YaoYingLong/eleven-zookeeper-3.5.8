@@ -39,10 +39,9 @@ public class SendAckRequestProcessor implements RequestProcessor, Flushable {
 
     public void processRequest(Request si) {
         if(si.type != OpCode.sync){
-            QuorumPacket qp = new QuorumPacket(Leader.ACK, si.getHdr().getZxid(), null,
-                null);
+            QuorumPacket qp = new QuorumPacket(Leader.ACK, si.getHdr().getZxid(), null, null);
             try {
-                learner.writePacket(qp, false);
+                learner.writePacket(qp, false); // 向Leader发送构建的ACK的packet，被LearnerHandler.run接收到执行Leader的processAck方法
             } catch (IOException e) {
                 LOG.warn("Closing connection to leader, exception during packet send", e);
                 try {

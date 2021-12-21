@@ -1873,13 +1873,10 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             LOG.debug("Reconfig feature is disabled, skip reconfig processing.");
             return false;
         }
-
         InetSocketAddress oldClientAddr = getClientAddress();
-
         // update last committed quorum verifier, write the new config to disk
         // and restart leader election if config changed.
         QuorumVerifier prevQV = setQuorumVerifier(qv, true);
-
         // There is no log record for the initial config, thus after syncing
         // with leader
         // /zookeeper/config is empty! it is also possible that last committed
@@ -1889,19 +1886,15 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         // already a Follower/Observer, only
         // for Learner):
         initConfigInZKDatabase();
-
         if (prevQV.getVersion() < qv.getVersion() && !prevQV.equals(qv)) {
             Map<Long, QuorumServer> newMembers = qv.getAllMembers();
             updateRemotePeerMXBeans(newMembers);
             if (restartLE) restartLeaderElection(prevQV, qv);
-
             QuorumServer myNewQS = newMembers.get(getId());
-            if (myNewQS != null && myNewQS.clientAddr != null
-                    && !myNewQS.clientAddr.equals(oldClientAddr)) {
+            if (myNewQS != null && myNewQS.clientAddr != null && !myNewQS.clientAddr.equals(oldClientAddr)) {
                 cnxnFactory.reconfigure(myNewQS.clientAddr);
                 updateThreadName();
             }
-
             boolean roleChange = updateLearnerType(qv);
             boolean leaderChange = false;
             if (suggestedLeaderId != null) {

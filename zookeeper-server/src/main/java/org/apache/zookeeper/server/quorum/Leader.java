@@ -115,8 +115,7 @@ public class Leader {
     }
 
     // list of followers that are ready to follow (i.e synced with the leader)
-    private final HashSet<LearnerHandler> forwardingFollowers =
-            new HashSet<LearnerHandler>();
+    private final HashSet<LearnerHandler> forwardingFollowers = new HashSet<LearnerHandler>();
 
     /**
      * Returns a copy of the current forwarding follower snapshot
@@ -768,7 +767,6 @@ public class Leader {
                 sendSync(r);
             }
         }
-
         return true;
     }
 
@@ -868,10 +866,8 @@ public class Leader {
          */
         public void processRequest(Request request) throws RequestProcessorException {
             next.processRequest(request);// 调用下一个请求处理器FinalRequestProcessor
-            // The only requests that should be on toBeApplied are write
-            // requests, for which we will have a hdr. We can't simply use
-            // request.zxid here because that is set on read requests to equal
-            // the zxid of the last write op.
+            // The only requests that should be on toBeApplied are write requests, for which we will have a hdr. We can't simply use
+            // request.zxid here because that is set on read requests to equal the zxid of the last write op.
             if (request.getHdr() != null) {
                 long zxid = request.getHdr().getZxid();
                 Iterator<Proposal> iter = leader.toBeApplied.iterator();
@@ -993,8 +989,7 @@ public class Leader {
      */
     public Proposal propose(Request request) throws XidRolloverException {
         /**
-         * Address the rollover issue. All lower 32bits set indicate a new leader
-         * election. Force a re-election instead. See ZOOKEEPER-1277
+         * Address the rollover issue. All lower 32bits set indicate a new leader election. Force a re-election instead. See ZOOKEEPER-1277
          */
         if ((request.zxid & 0xffffffffL) == 0xffffffffL) {
             String msg = "zxid lower 32 bits have rolled over, forcing re-election, and therefore new epoch start";

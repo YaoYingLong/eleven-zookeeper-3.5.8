@@ -47,10 +47,8 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
 
     boolean finished = false;
 
-    public FollowerRequestProcessor(FollowerZooKeeperServer zks,
-            RequestProcessor nextProcessor) {
-        super("FollowerRequestProcessor:" + zks.getServerId(), zks
-                .getZooKeeperServerListener());
+    public FollowerRequestProcessor(FollowerZooKeeperServer zks, RequestProcessor nextProcessor) {
+        super("FollowerRequestProcessor:" + zks.getServerId(), zks.getZooKeeperServerListener());
         this.zks = zks;
         this.nextProcessor = nextProcessor;
     }
@@ -61,8 +59,7 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
             while (!finished) {
                 Request request = queuedRequests.take();
                 if (LOG.isTraceEnabled()) {
-                    ZooTrace.logRequest(LOG, ZooTrace.CLIENT_REQUEST_TRACE_MASK,
-                            'F', request, "");
+                    ZooTrace.logRequest(LOG, ZooTrace.CLIENT_REQUEST_TRACE_MASK, 'F', request, "");
                 }
                 if (request == Request.requestOfDeath) {
                     break;
@@ -71,7 +68,6 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                 // the request to the leader so that we are ready to receive
                 // the response
                 nextProcessor.processRequest(request);
-
                 // We now ship the request to the leader. As with all
                 // other quorum operations, sync also follows this code
                 // path, but different from others, we need to keep track

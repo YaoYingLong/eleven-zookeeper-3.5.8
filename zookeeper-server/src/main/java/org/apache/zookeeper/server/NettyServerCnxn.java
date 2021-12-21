@@ -161,8 +161,7 @@ public class NettyServerCnxn extends ServerCnxn {
     }
 
     @Override
-    public void sendResponse(ReplyHeader h, Record r, String tag)
-            throws IOException {
+    public void sendResponse(ReplyHeader h, Record r, String tag) throws IOException {
         if (closingChannel || !channel.isOpen()) {
             return;
         }

@@ -200,16 +200,12 @@ public class FileTxnLog implements TxnLog, Closeable {
      * @param txn the transaction part of the entry
      * returns true iff something appended, otw false
      */
-    public synchronized boolean append(TxnHeader hdr, Record txn)
-        throws IOException
-    {
+    public synchronized boolean append(TxnHeader hdr, Record txn) throws IOException {
         if (hdr == null) {
             return false;
         }
         if (hdr.getZxid() <= lastZxidSeen) {
-            LOG.warn("Current zxid " + hdr.getZxid()
-                    + " is <= " + lastZxidSeen + " for "
-                    + hdr.getType());
+            LOG.warn("Current zxid " + hdr.getZxid() + " is <= " + lastZxidSeen + " for " + hdr.getType());
         } else {
             lastZxidSeen = hdr.getZxid();
         }
@@ -217,7 +213,6 @@ public class FileTxnLog implements TxnLog, Closeable {
            if(LOG.isInfoEnabled()){
                 LOG.info("Creating new log file: " + Util.makeLogName(hdr.getZxid()));
            }
-
            logFileWrite = new File(logDir, Util.makeLogName(hdr.getZxid()));
            fos = new FileOutputStream(logFileWrite);
            logStream=new BufferedOutputStream(fos);
@@ -232,14 +227,12 @@ public class FileTxnLog implements TxnLog, Closeable {
         filePadding.padFile(fos.getChannel());
         byte[] buf = Util.marshallTxnEntry(hdr, txn);
         if (buf == null || buf.length == 0) {
-            throw new IOException("Faulty serialization for header " +
-                    "and txn");
+            throw new IOException("Faulty serialization for header and txn");
         }
         Checksum crc = makeChecksumAlgorithm();
         crc.update(buf, 0, buf.length);
         oa.writeLong(crc.getValue(), "txnEntryCRC");
         Util.writeTxnBytes(oa, buf);
-
         return true;
     }
 
@@ -331,21 +324,14 @@ public class FileTxnLog implements TxnLog, Closeable {
             log.flush();
             if (forceSync) {
                 long startSyncNS = System.nanoTime();
-
                 FileChannel channel = log.getChannel();
                 channel.force(false);
-
                 syncElapsedMS = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startSyncNS);
                 if (syncElapsedMS > fsyncWarningThresholdMS) {
                     if(serverStats != null) {
                         serverStats.incrementFsyncThresholdExceedCount();
                     }
-                    LOG.warn("fsync-ing the write ahead log in "
-                            + Thread.currentThread().getName()
-                            + " took " + syncElapsedMS
-                            + "ms which will adversely effect operation latency. "
-                            + "File size is " + channel.size() + " bytes. "
-                            + "See the ZooKeeper troubleshooting guide");
+                    LOG.warn("fsync-ing the write ahead log in " + Thread.currentThread().getName() + " took " + syncElapsedMS + "ms which will adversely effect operation latency. File size is " + channel.size() + " bytes. See the ZooKeeper troubleshooting guide");
                 }
             }
         }

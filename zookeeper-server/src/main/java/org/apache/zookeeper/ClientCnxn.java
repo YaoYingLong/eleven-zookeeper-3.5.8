@@ -720,8 +720,7 @@ public class ClientCnxn {
             BinaryInputArchive bbia = BinaryInputArchive.getArchive(bbis);
             ReplyHeader replyHdr = new ReplyHeader();
             replyHdr.deserialize(bbia, "header");
-            if (replyHdr.getXid() == -2) {
-                // -2 is the xid for pings
+            if (replyHdr.getXid() == -2) {// -2 is the xid for pings
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got ping response for sessionid: 0x" + Long.toHexString(sessionId) + " after " + ((System.nanoTime() - lastPingSentNs) / 1000000) + "ms");
                 }
@@ -928,8 +927,7 @@ public class ClientCnxn {
         // throws a LoginException: see startConnect() below.
         private boolean saslLoginFailed = false;
 
-        private void startConnect(InetSocketAddress addr) throws IOException {
-            // initializing it for new connection
+        private void startConnect(InetSocketAddress addr) throws IOException {// initializing it for new connection
             saslLoginFailed = false;
             if (!isFirstConnect) {
                 try {
@@ -939,7 +937,6 @@ public class ClientCnxn {
                 }
             }
             state = States.CONNECTING;
-
             String hostPort = addr.getHostString() + ":" + addr.getPort();
             MDC.put("myid", hostPort);
             setName(getName().replaceAll("\\(.*\\)", "(" + hostPort + ")"));
@@ -948,8 +945,7 @@ public class ClientCnxn {
                     if (zooKeeperSaslClient != null) {
                         zooKeeperSaslClient.shutdown();
                     }
-                    zooKeeperSaslClient = new ZooKeeperSaslClient(SaslServerPrincipal.getServerPrincipal(addr, clientConfig),
-                            clientConfig);
+                    zooKeeperSaslClient = new ZooKeeperSaslClient(SaslServerPrincipal.getServerPrincipal(addr, clientConfig), clientConfig);
                 } catch (LoginException e) {
                     // An authentication error occurred when the SASL client tried to initialize:
                     // for Kerberos this means that the client failed to authenticate with the KDC.
@@ -1001,9 +997,7 @@ public class ClientCnxn {
                         startConnect(serverAddress);
                         clientCnxnSocket.updateLastSendAndHeard();
                     }
-
-                    if (state.isConnected()) {
-                        // determine whether we need to send an AuthFailed event.
+                    if (state.isConnected()) {// determine whether we need to send an AuthFailed event.
                         if (zooKeeperSaslClient != null) {
                             boolean sendAuthEvent = false;
                             if (zooKeeperSaslClient.getSaslState() == ZooKeeperSaslClient.SaslState.INITIAL) {
@@ -1029,9 +1023,7 @@ public class ClientCnxn {
                             }
 
                             if (sendAuthEvent) {
-                                eventThread.queueEvent(new WatchedEvent(
-                                        Watcher.Event.EventType.None,
-                                        authState, null));
+                                eventThread.queueEvent(new WatchedEvent(Watcher.Event.EventType.None, authState, null));
                                 if (state == States.AUTH_FAILED) {
                                     eventThread.queueEventOfDeath();
                                 }
@@ -1041,7 +1033,6 @@ public class ClientCnxn {
                     } else {
                         to = connectTimeout - clientCnxnSocket.getIdleRecv();
                     }
-
                     if (to <= 0) {
                         String warnInfo;
                         warnInfo = "Client session timed out, have not heard from server in " + clientCnxnSocket.getIdleRecv() + "ms for sessionid 0x" + Long.toHexString(sessionId);
@@ -1062,7 +1053,6 @@ public class ClientCnxn {
                             }
                         }
                     }
-
                     // If we are in read-only mode, seek for read/write server
                     if (state == States.CONNECTEDREADONLY) { // 只读模式处理
                         long now = Time.currentElapsedTime();
@@ -1082,8 +1072,7 @@ public class ClientCnxn {
                             LOG.debug("An exception was thrown while closing send thread for session 0x" + Long.toHexString(getSessionId()) + " : " + e.getMessage());
                         }
                         break;
-                    } else {
-                        // this is ugly, you have a better way speak up
+                    } else {// this is ugly, you have a better way speak up
                         if (e instanceof SessionExpiredException) {
                             LOG.info(e.getMessage() + ", closing socket connection");
                         } else if (e instanceof SessionTimeoutException) {
@@ -1103,9 +1092,7 @@ public class ClientCnxn {
                     }
                 }
             }
-            synchronized (state) {
-                // When it comes to this point, it guarantees that later queued
-                // packet to outgoingQueue will be notified of death.
+            synchronized (state) {// When it comes to this point, it guarantees that later queued packet to outgoingQueue will be notified of death.
                 cleanup();
             }
             clientCnxnSocket.close();

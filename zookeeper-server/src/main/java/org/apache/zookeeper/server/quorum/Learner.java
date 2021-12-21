@@ -349,9 +349,7 @@ public class Learner {
         QuorumPacket ack = new QuorumPacket(Leader.ACK, 0, null, null);
         QuorumPacket qp = new QuorumPacket();
         long newEpoch = ZxidUtils.getEpochFromZxid(newLeaderZxid);
-
         QuorumVerifier newLeaderQV = null;
-
         // In the DIFF case we don't need to do a snapshot because the transactions will sync on top of any existing snapshot
         // For SNAP and TRUNC the snapshot is needed to save that history
         boolean snapshotNeeded = true;
@@ -364,12 +362,9 @@ public class Learner {
                 snapshotNeeded = false;
             } else if (qp.getType() == Leader.SNAP) {
                 LOG.info("Getting a snapshot from leader 0x" + Long.toHexString(qp.getZxid()));
-                // The leader is going to dump the database
-                // db is clear as part of deserializeSnapshot()
+                // The leader is going to dump the database db is clear as part of deserializeSnapshot()
                 zk.getZKDatabase().deserializeSnapshot(leaderIs);
-                // ZOOKEEPER-2819: overwrite config node content extracted
-                // from leader snapshot with local config, to avoid potential
-                // inconsistency of config node content during rolling restart.
+                // ZOOKEEPER-2819: overwrite config node content extracted from leader snapshot with local config, to avoid potential inconsistency of config node content during rolling restart.
                 if (!QuorumPeerConfig.isReconfigEnabled()) {
                     LOG.debug("Reset config node content from local config after deserialization of snapshot.");
                     zk.getZKDatabase().initConfigInZKDatabase(self.getQuorumVerifier());
@@ -380,12 +375,10 @@ public class Learner {
                     throw new IOException("Missing signature");
                 }
                 zk.getZKDatabase().setlastProcessedZxid(qp.getZxid());
-            } else if (qp.getType() == Leader.TRUNC) {
-                //we need to truncate the log to the lastzxid of the leader
+            } else if (qp.getType() == Leader.TRUNC) {//we need to truncate the log to the lastzxid of the leader
                 LOG.warn("Truncating log to get in sync with the leader 0x" + Long.toHexString(qp.getZxid()));
                 boolean truncated = zk.getZKDatabase().truncateLog(qp.getZxid());
-                if (!truncated) {
-                    // not able to truncate the log
+                if (!truncated) {// not able to truncate the log
                     LOG.error("Not able to truncate the log " + Long.toHexString(qp.getZxid()));
                     System.exit(13);
                 }
@@ -396,9 +389,7 @@ public class Learner {
             }
             zk.getZKDatabase().initConfigInZKDatabase(self.getQuorumVerifier());
             zk.createSessionTracker();
-
             long lastQueued = 0;
-
             // in Zab V1.0 (ZK 3.4+) we might take a snapshot when we get the NEWLEADER message, but in pre V1.0
             // we take the snapshot on the UPDATE message, since Zab V1.0 also gets the UPDATE (after the NEWLEADER)
             // we need to make sure that we don't take the snapshot twice.
@@ -419,13 +410,11 @@ public class Learner {
                             LOG.warn("Got zxid 0x" + Long.toHexString(pif.hdr.getZxid()) + " expected 0x" + Long.toHexString(lastQueued + 1));
                         }
                         lastQueued = pif.hdr.getZxid();
-
                         if (pif.hdr.getType() == OpCode.reconfig) {
                             SetDataTxn setDataTxn = (SetDataTxn) pif.rec;
                             QuorumVerifier qv = self.configFromString(new String(setDataTxn.getData()));
                             self.setLastSeenQuorumVerifier(qv, true);
                         }
-
                         packetsNotCommitted.add(pif);
                         break;
                     case Leader.COMMIT:
@@ -433,8 +422,7 @@ public class Learner {
                         pif = packetsNotCommitted.peekFirst();
                         if (pif.hdr.getZxid() == qp.getZxid() && qp.getType() == Leader.COMMITANDACTIVATE) {
                             QuorumVerifier qv = self.configFromString(new String(((SetDataTxn) pif.rec).getData()));
-                            boolean majorChange = self.processReconfig(qv, ByteBuffer.wrap(qp.getData()).getLong(),
-                                    qp.getZxid(), true);
+                            boolean majorChange = self.processReconfig(qv, ByteBuffer.wrap(qp.getData()).getLong(), qp.getZxid(), true);
                             if (majorChange) {
                                 throw new Exception("changes proposed in reconfig");
                             }
@@ -473,14 +461,12 @@ public class Learner {
                             }
                             lastQueued = packet.hdr.getZxid();
                         }
-                        if (!writeToTxnLog) {
-                            // Apply to db directly if we haven't taken the snapshot
+                        if (!writeToTxnLog) {// Apply to db directly if we haven't taken the snapshot
                             zk.processTxn(packet.hdr, packet.rec);
                         } else {
                             packetsNotCommitted.add(packet);
                             packetsCommitted.add(qp.getZxid());
                         }
-
                         break;
                     case Leader.UPTODATE:
                         LOG.info("Learner received UPTODATE message");
@@ -497,8 +483,7 @@ public class Learner {
                         self.setZooKeeperServer(zk);
                         self.adminServer.setZooKeeperServer(zk);
                         break outerLoop;
-                    case Leader.NEWLEADER: // Getting NEWLEADER here instead of in discovery
-                        // means this is Zab 1.0
+                    case Leader.NEWLEADER: // Getting NEWLEADER here instead of in discovery means this is Zab 1.0
                         LOG.info("Learner received NEWLEADER message");
                         if (qp.getData() != null && qp.getData().length > 1) {
                             try {
@@ -532,7 +517,6 @@ public class Learner {
          * @see https://issues.apache.org/jira/browse/ZOOKEEPER-1732
          */
         self.updateElectionVote(newEpoch);
-
         // We need to log the stuff that came in between the snapshot and the uptodate
         if (zk instanceof FollowerZooKeeperServer) {
             FollowerZooKeeperServer fzk = (FollowerZooKeeperServer) zk;

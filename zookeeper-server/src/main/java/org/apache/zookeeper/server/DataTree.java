@@ -597,8 +597,7 @@ public class DataTree {
                 EventType.NodeChildrenChanged);
     }
 
-    public Stat setData(String path, byte data[], int version, long zxid,
-            long time) throws KeeperException.NoNodeException {
+    public Stat setData(String path, byte data[], int version, long zxid, long time) throws KeeperException.NoNodeException {
         Stat s = new Stat();
         DataNode n = nodes.get(path);
         if (n == null) {
@@ -857,7 +856,6 @@ public class DataTree {
                             break;
                         }
                     }
-
                     boolean post_failed = false;
                     for (Txn subtxn : txns) {
                         ByteBuffer bb = ByteBuffer.wrap(subtxn.getData());
@@ -890,19 +888,15 @@ public class DataTree {
                                 throw new IOException("Invalid type of op: " + subtxn.getType());
                         }
                         assert(record != null);
-
                         ByteBufferInputStream.byteBuffer2Record(bb, record);
-
                         if (failed && subtxn.getType() != OpCode.error){
                             int ec = post_failed ? Code.RUNTIMEINCONSISTENCY.intValue() : Code.OK.intValue();
                             subtxn.setType(OpCode.error);
                             record = new ErrorTxn(ec);
                         }
-
                         if (failed) {
                             assert(subtxn.getType() == OpCode.error) ;
                         }
-
                         TxnHeader subHdr = new TxnHeader(header.getClientId(), header.getCxid(), header.getZxid(), header.getTime(), subtxn.getType());
                         ProcessTxnResult subRc = processTxn(subHdr, record, true);
                         rc.multiResult.add(subRc);
@@ -973,24 +967,19 @@ public class DataTree {
          * Note, such failures on DT should be seen only during
          * restore.
          */
-        if (header.getType() == OpCode.create &&
-                rc.err == Code.NODEEXISTS.intValue()) {
-            LOG.debug("Adjusting parent cversion for Txn: " + header.getType() +
-                    " path:" + rc.path + " err: " + rc.err);
+        if (header.getType() == OpCode.create && rc.err == Code.NODEEXISTS.intValue()) {
+            LOG.debug("Adjusting parent cversion for Txn: " + header.getType() + " path:" + rc.path + " err: " + rc.err);
             int lastSlash = rc.path.lastIndexOf('/');
             String parentName = rc.path.substring(0, lastSlash);
             CreateTxn cTxn = (CreateTxn)txn;
             try {
-                setCversionPzxid(parentName, cTxn.getParentCVersion(),
-                        header.getZxid());
+                setCversionPzxid(parentName, cTxn.getParentCVersion(), header.getZxid());
             } catch (KeeperException.NoNodeException e) {
-                LOG.error("Failed to set parent cversion for: " +
-                      parentName, e);
+                LOG.error("Failed to set parent cversion for: " + parentName, e);
                 rc.err = e.code().intValue();
             }
         } else if (rc.err != Code.OK.intValue()) {
-            LOG.debug("Ignoring processTxn failure hdr: " + header.getType() +
-                  " : error: " + rc.err);
+            LOG.debug("Ignoring processTxn failure hdr: " + header.getType() + " : error: " + rc.err);
         }
         return rc;
     }

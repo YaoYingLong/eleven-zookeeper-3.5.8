@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,31 +18,31 @@
 
 package org.apache.zookeeper.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Flushable;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * This RequestProcessor logs requests to disk. It batches the requests to do
  * the io efficiently. The request is not passed to the next RequestProcessor
  * until its log has been synced to disk.
- *
+ * <p>
  * SyncRequestProcessor is used in 3 different cases
  * 1. Leader - Sync request to disk and forward it to AckRequestProcessor which
- *             send ack back to itself.
+ * send ack back to itself.
  * 2. Follower - Sync request to disk and forward request to
- *             SendAckRequestProcessor which send the packets to leader.
- *             SendAckRequestProcessor is flushable which allow us to force
- *             push packets to leader.
+ * SendAckRequestProcessor which send the packets to leader.
+ * SendAckRequestProcessor is flushable which allow us to force
+ * push packets to leader.
  * 3. Observer - Sync committed request to disk (received as INFORM packet).
- *             It never send ack back to the leader, so the nextProcessor will
- *             be null. This change the semantic of txnlog on the observer
- *             since it only contains committed txns.
+ * It never send ack back to the leader, so the nextProcessor will
+ * be null. This change the semantic of txnlog on the observer
+ * since it only contains committed txns.
  */
 public class SyncRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(SyncRequestProcessor.class);
@@ -77,7 +77,6 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
     /**
      * used by tests to check for changing
      * snapcounts
-     * @param count
      */
     public static void setSnapCount(int count) {
         snapCount = count;
@@ -85,6 +84,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
 
     /**
      * used by tests to get the snapcount
+     *
      * @return the snapcount
      */
     public static int getSnapCount() {
@@ -95,9 +95,8 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
     public void run() {
         try {
             int logCount = 0;
-            // we do this in an attempt to ensure that not all of the servers
-            // in the ensemble take a snapshot at the same time
-            int randRoll = r.nextInt(snapCount/2);
+            // we do this in an attempt to ensure that not all of the servers in the ensemble take a snapshot at the same time
+            int randRoll = r.nextInt(snapCount / 2);
             while (true) {
                 Request si = null;
                 if (toFlush.isEmpty()) {
@@ -109,40 +108,37 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                         continue;
                     }
                 }
-                if (si == requestOfDeath) {
+                if (si == requestOfDeath) { // 若为失效请求则直接退出
                     break;
                 }
-                if (si != null) {// track the number of records written to the log
-                    if (zks.getZKDatabase().append(si)) {
+                if (si != null) {// track the number of records written to the log 跟踪写入日志的记录数
+                    if (zks.getZKDatabase().append(si)) { // 添加到事务日志文件中
                         logCount++;
                         if (logCount > (snapCount / 2 + randRoll)) {
-                            randRoll = r.nextInt(snapCount/2);
+                            randRoll = r.nextInt(snapCount / 2);
                             zks.getZKDatabase().rollLog(); // roll the log
                             if (snapInProcess != null && snapInProcess.isAlive()) { // take a snapshot
                                 LOG.warn("Too busy to snap, skipping");
                             } else {
                                 snapInProcess = new ZooKeeperThread("Snapshot Thread") {
-                                        public void run() {
-                                            try {
-                                                zks.takeSnapshot();
-                                            } catch(Exception e) {
-                                                LOG.warn("Unexpected exception", e);
-                                            }
+                                    public void run() {
+                                        try {
+                                            zks.takeSnapshot();
+                                        } catch (Exception e) {
+                                            LOG.warn("Unexpected exception", e);
                                         }
-                                    };
+                                    }
+                                };
                                 snapInProcess.start();
                             }
                             logCount = 0;
                         }
                     } else if (toFlush.isEmpty()) {
-                        // optimization for read heavy workloads
-                        // iff this is a read, and there are no pending
-                        // flushes (writes), then just pass this to the next
-                        // processor
+                        // optimization for read heavy workloads iff this is a read, and there are no pending flushes (writes), then just pass this to the next processor
                         if (nextProcessor != null) {
                             nextProcessor.processRequest(si);
                             if (nextProcessor instanceof Flushable) {
-                                ((Flushable)nextProcessor).flush();
+                                ((Flushable) nextProcessor).flush();
                             }
                         }
                         continue;
@@ -155,18 +151,14 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
             }
         } catch (Throwable t) {
             handleException(this.getName(), t);
-        } finally{
+        } finally {
             running = false;
         }
         LOG.info("SyncRequestProcessor exited!");
     }
 
-    private void flush(LinkedList<Request> toFlush)
-        throws IOException, RequestProcessorException
-    {
-        if (toFlush.isEmpty())
-            return;
-
+    private void flush(LinkedList<Request> toFlush) throws IOException, RequestProcessorException {
+        if (toFlush.isEmpty()) return;
         zks.getZKDatabase().commit();
         while (!toFlush.isEmpty()) {
             Request i = toFlush.remove();
@@ -175,7 +167,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
             }
         }
         if (nextProcessor != null && nextProcessor instanceof Flushable) {
-            ((Flushable)nextProcessor).flush();
+            ((Flushable) nextProcessor).flush();
         }
     }
 
@@ -183,13 +175,13 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
         LOG.info("Shutting down");
         queuedRequests.add(requestOfDeath);
         try {
-            if(running){
+            if (running) {
                 this.join();
             }
             if (!toFlush.isEmpty()) {
                 flush(toFlush);
             }
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             LOG.warn("Interrupted while wating for " + this + " to finish");
         } catch (IOException e) {
             LOG.warn("Got IO exception during shutdown");
